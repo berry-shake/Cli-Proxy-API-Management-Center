@@ -12,6 +12,7 @@ export type AuthFileType =
   | 'claude'
   | 'codex'
   | 'antigravity'
+  | 'github-copilot'
   | 'iflow'
   | 'vertex'
   | 'empty'

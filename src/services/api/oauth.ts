@@ -9,12 +9,15 @@ export type OAuthProvider =
   | 'anthropic'
   | 'antigravity'
   | 'gemini-cli'
+  | 'github'
   | 'kimi'
   | 'qwen';
 
 export interface OAuthStartResponse {
   url: string;
   state?: string;
+  user_code?: string;
+  verification_uri?: string;
 }
 
 export interface OAuthCallbackResponse {

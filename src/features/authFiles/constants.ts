@@ -58,6 +58,10 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
     light: { bg: '#e0f7fa', text: '#006064' },
     dark: { bg: '#004d40', text: '#80deea' }
   },
+  'github-copilot': {
+    light: { bg: '#ede9fe', text: '#5b21b6' },
+    dark: { bg: '#312e81', text: '#c4b5fd' }
+  },
   kiro: {
     light: { bg: '#fff8e1', text: '#ff8f00' },
     dark: { bg: '#ff6f00', text: '#ffe082' }
