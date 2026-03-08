@@ -9,7 +9,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
 } from 'chart.js';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -31,14 +31,14 @@ import {
   ServiceHealthCard,
   useUsageData,
   useSparklines,
-  useChartData
+  useChartData,
 } from '@/components/usage';
 import {
   getModelNamesFromUsage,
   getApiStats,
   getModelStats,
   filterUsageByTimeRange,
-  type UsageTimeRange
+  type UsageTimeRange,
 } from '@/utils/usage';
 import styles from './UsagePage.module.scss';
 
@@ -59,6 +59,7 @@ const TIME_RANGE_STORAGE_KEY = 'cli-proxy-usage-time-range-v1';
 const DEFAULT_CHART_LINES = ['all'];
 const DEFAULT_TIME_RANGE: UsageTimeRange = '24h';
 const MAX_CHART_LINES = 9;
+const MODEL_PRICE_AUTO_SYNC_STALE_MS = 24 * 60 * 60 * 1000;
 const TIME_RANGE_OPTIONS: ReadonlyArray<{ value: UsageTimeRange; labelKey: string }> = [
   { value: 'all', labelKey: 'usage_stats.range_all' },
   { value: '7h', labelKey: 'usage_stats.range_7h' },
@@ -68,7 +69,7 @@ const TIME_RANGE_OPTIONS: ReadonlyArray<{ value: UsageTimeRange; labelKey: strin
 const HOUR_WINDOW_BY_TIME_RANGE: Record<Exclude<UsageTimeRange, 'all'>, number> = {
   '7h': 7,
   '24h': 24,
-  '7d': 7 * 24
+  '7d': 7 * 24,
 };
 
 const isUsageTimeRange = (value: unknown): value is UsageTimeRange =>
@@ -129,14 +130,17 @@ export function UsagePage() {
     error,
     lastRefreshedAt,
     modelPrices,
+    modelPriceSyncMeta,
     setModelPrices,
+    syncModelPrices,
+    syncingModelPrices,
     loadUsage,
     handleExport,
     handleImport,
     handleImportChange,
     importInputRef,
     exporting,
-    importing
+    importing,
   } = useUsageData();
 
   useHeaderRefresh(loadUsage);
@@ -149,7 +153,7 @@ export function UsagePage() {
     () =>
       TIME_RANGE_OPTIONS.map((opt) => ({
         value: opt.value,
-        label: t(opt.labelKey)
+        label: t(opt.labelKey),
       })),
     [t]
   );
@@ -158,8 +162,7 @@ export function UsagePage() {
     () => (usage ? filterUsageByTimeRange(usage, timeRange) : null),
     [usage, timeRange]
   );
-  const hourWindowHours =
-    timeRange === 'all' ? undefined : HOUR_WINDOW_BY_TIME_RANGE[timeRange];
+  const hourWindowHours = timeRange === 'all' ? undefined : HOUR_WINDOW_BY_TIME_RANGE[timeRange];
 
   const handleChartLinesChange = useCallback((lines: string[]) => {
     setChartLines(normalizeChartLines(lines));
@@ -190,13 +193,8 @@ export function UsagePage() {
   const nowMs = lastRefreshedAt?.getTime() ?? 0;
 
   // Sparklines hook
-  const {
-    requestsSparkline,
-    tokensSparkline,
-    rpmSparkline,
-    tpmSparkline,
-    costSparkline
-  } = useSparklines({ usage: filteredUsage, loading, nowMs });
+  const { requestsSparkline, tokensSparkline, rpmSparkline, tpmSparkline, costSparkline } =
+    useSparklines({ usage: filteredUsage, loading, nowMs });
 
   // Chart data hook
   const {
@@ -207,11 +205,12 @@ export function UsagePage() {
     requestsChartData,
     tokensChartData,
     requestsChartOptions,
-    tokensChartOptions
+    tokensChartOptions,
   } = useChartData({ usage: filteredUsage, chartLines, isDark, isMobile, hourWindowHours });
 
   // Derived data
   const modelNames = useMemo(() => getModelNamesFromUsage(usage), [usage]);
+  const modelPriceCount = Object.keys(modelPrices).length;
   const apiStats = useMemo(
     () => getApiStats(filteredUsage, modelPrices),
     [filteredUsage, modelPrices]
@@ -220,7 +219,29 @@ export function UsagePage() {
     () => getModelStats(filteredUsage, modelPrices),
     [filteredUsage, modelPrices]
   );
-  const hasPrices = Object.keys(modelPrices).length > 0;
+  const hasPrices = modelPriceCount > 0;
+
+  useEffect(() => {
+    if (loading || !usage || modelNames.length === 0) {
+      return;
+    }
+
+    const hasLocalPrices = modelPriceCount > 0;
+    const syncedAtMs =
+      modelPriceSyncMeta?.source === 'remote' && modelPriceSyncMeta.syncedAt
+        ? Date.parse(modelPriceSyncMeta.syncedAt)
+        : Number.NaN;
+    const remotePriceCacheStale =
+      !Number.isFinite(syncedAtMs) || Date.now() - syncedAtMs > MODEL_PRICE_AUTO_SYNC_STALE_MS;
+    const shouldAutoSync =
+      !hasLocalPrices || (modelPriceSyncMeta?.source === 'remote' && remotePriceCacheStale);
+
+    if (!shouldAutoSync) {
+      return;
+    }
+
+    void syncModelPrices(modelNames, { silent: hasLocalPrices });
+  }, [loading, modelNames, modelPriceCount, modelPriceSyncMeta, syncModelPrices, usage]);
 
   return (
     <div className={styles.container}>
@@ -301,7 +322,7 @@ export function UsagePage() {
           tokens: tokensSparkline,
           rpm: rpmSparkline,
           tpm: tpmSparkline,
-          cost: costSparkline
+          cost: costSparkline,
         }}
       />
 
@@ -391,6 +412,9 @@ export function UsagePage() {
         modelNames={modelNames}
         modelPrices={modelPrices}
         onPricesChange={setModelPrices}
+        onSyncPrices={syncModelPrices}
+        syncingPrices={syncingModelPrices}
+        syncMeta={modelPriceSyncMeta}
       />
     </div>
   );

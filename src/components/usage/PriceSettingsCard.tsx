@@ -5,19 +5,25 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
-import type { ModelPrice } from '@/utils/usage';
+import type { ModelPrice, ModelPriceSyncMeta } from '@/utils/usage';
 import styles from '@/pages/UsagePage.module.scss';
 
 export interface PriceSettingsCardProps {
   modelNames: string[];
   modelPrices: Record<string, ModelPrice>;
   onPricesChange: (prices: Record<string, ModelPrice>) => void;
+  onSyncPrices: (modelNames: string[]) => Promise<void>;
+  syncingPrices: boolean;
+  syncMeta: ModelPriceSyncMeta | null;
 }
 
 export function PriceSettingsCard({
   modelNames,
   modelPrices,
-  onPricesChange
+  onPricesChange,
+  onSyncPrices,
+  syncingPrices,
+  syncMeta,
 }: PriceSettingsCardProps) {
   const { t } = useTranslation();
 
@@ -87,13 +93,49 @@ export function PriceSettingsCard({
   const options = useMemo(
     () => [
       { value: '', label: t('usage_stats.model_price_select_placeholder') },
-      ...modelNames.map((name) => ({ value: name, label: name }))
+      ...modelNames.map((name) => ({ value: name, label: name })),
     ],
     [modelNames, t]
   );
 
+  const savedPriceEntries = useMemo(
+    () => Object.entries(modelPrices).sort(([left], [right]) => left.localeCompare(right)),
+    [modelPrices]
+  );
+
+  const syncSummary = useMemo(() => {
+    if (syncMeta?.source !== 'remote' || !syncMeta.syncedAt) {
+      return t('usage_stats.model_price_sync_hint');
+    }
+
+    const syncedAt = new Date(syncMeta.syncedAt);
+    const syncedAtText = Number.isNaN(syncedAt.getTime())
+      ? syncMeta.syncedAt
+      : syncedAt.toLocaleString();
+    const matchedCount = syncMeta.matchedCount ?? savedPriceEntries.length;
+
+    return t('usage_stats.model_price_sync_summary', {
+      time: syncedAtText,
+      count: matchedCount,
+    });
+  }, [savedPriceEntries.length, syncMeta, t]);
+
   return (
-    <Card title={t('usage_stats.model_price_settings')}>
+    <Card
+      title={t('usage_stats.model_price_settings')}
+      subtitle={syncSummary}
+      extra={
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => void onSyncPrices(modelNames)}
+          loading={syncingPrices}
+          disabled={syncingPrices || modelNames.length === 0}
+        >
+          {t('usage_stats.model_price_sync')}
+        </Button>
+      }
+    >
       <div className={styles.pricingSection}>
         {/* Price Form */}
         <div className={styles.priceForm}>
@@ -146,9 +188,9 @@ export function PriceSettingsCard({
         {/* Saved Prices List */}
         <div className={styles.pricesList}>
           <h4 className={styles.pricesTitle}>{t('usage_stats.saved_prices')}</h4>
-          {Object.keys(modelPrices).length > 0 ? (
+          {savedPriceEntries.length > 0 ? (
             <div className={styles.pricesGrid}>
-              {Object.entries(modelPrices).map(([model, price]) => (
+              {savedPriceEntries.map(([model, price]) => (
                 <div key={model} className={styles.priceItem}>
                   <div className={styles.priceInfo}>
                     <span className={styles.priceModel}>{model}</span>

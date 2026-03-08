@@ -35,6 +35,14 @@ export interface ModelPrice {
   cache: number;
 }
 
+export interface ModelPriceSyncMeta {
+  source: 'manual' | 'remote';
+  syncedAt?: string;
+  remoteUrl?: string;
+  importedCount?: number;
+  matchedCount?: number;
+}
+
 export interface UsageDetail {
   timestamp: string;
   source: string;
@@ -73,6 +81,7 @@ export type UsageTimeRange = '7h' | '24h' | '7d' | 'all';
 
 const TOKENS_PER_PRICE_UNIT = 1_000_000;
 const MODEL_PRICE_STORAGE_KEY = 'cli-proxy-model-prices-v2';
+const MODEL_PRICE_SYNC_META_STORAGE_KEY = 'cli-proxy-model-prices-meta-v1';
 const USAGE_ENDPOINT_METHOD_REGEX = /^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\s+(\S+)/i;
 const USAGE_TIME_RANGE_MS: Record<Exclude<UsageTimeRange, 'all'>, number> = {
   '7h': 7 * 60 * 60 * 1000,
@@ -788,14 +797,78 @@ export function loadModelPrices(): Record<string, ModelPrice> {
 }
 
 /**
+ * 从 localStorage 加载模型价格同步信息
+ */
+export function loadModelPriceSyncMeta(): ModelPriceSyncMeta | null {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+    const raw = localStorage.getItem(MODEL_PRICE_SYNC_META_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed)) {
+      return null;
+    }
+
+    const source = parsed.source;
+    if (source !== 'manual' && source !== 'remote') {
+      return null;
+    }
+
+    const syncedAt = typeof parsed.syncedAt === 'string' && parsed.syncedAt.trim() ? parsed.syncedAt : undefined;
+    const remoteUrl =
+      typeof parsed.remoteUrl === 'string' && parsed.remoteUrl.trim() ? parsed.remoteUrl : undefined;
+    const importedCountRaw = Number(parsed.importedCount);
+    const matchedCountRaw = Number(parsed.matchedCount);
+
+    return {
+      source,
+      syncedAt,
+      remoteUrl,
+      importedCount: Number.isFinite(importedCountRaw) && importedCountRaw >= 0 ? importedCountRaw : undefined,
+      matchedCount: Number.isFinite(matchedCountRaw) && matchedCountRaw >= 0 ? matchedCountRaw : undefined
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 保存模型价格同步信息到 localStorage
+ */
+export function saveModelPriceSyncMeta(meta: ModelPriceSyncMeta | null): void {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+    if (!meta) {
+      localStorage.removeItem(MODEL_PRICE_SYNC_META_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(MODEL_PRICE_SYNC_META_STORAGE_KEY, JSON.stringify(meta));
+  } catch {
+    console.warn('保存模型价格同步信息失败');
+  }
+}
+
+/**
  * 保存模型价格到 localStorage
  */
-export function saveModelPrices(prices: Record<string, ModelPrice>): void {
+export function saveModelPrices(
+  prices: Record<string, ModelPrice>,
+  syncMeta?: ModelPriceSyncMeta | null
+): void {
   try {
     if (typeof localStorage === 'undefined') {
       return;
     }
     localStorage.setItem(MODEL_PRICE_STORAGE_KEY, JSON.stringify(prices));
+    if (syncMeta !== undefined) {
+      saveModelPriceSyncMeta(syncMeta);
+    }
   } catch {
     console.warn('保存模型价格失败');
   }

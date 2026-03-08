@@ -2,8 +2,23 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { USAGE_STATS_STALE_TIME_MS, useNotificationStore, useUsageStatsStore } from '@/stores';
 import { usageApi } from '@/services/api/usage';
+import {
+  fetchRemoteModelPrices,
+  matchRemoteModelPrices,
+  MODEL_PRICE_REMOTE_URL,
+} from '@/services/api/modelPrices';
 import { downloadBlob } from '@/utils/download';
-import { loadModelPrices, saveModelPrices, type ModelPrice } from '@/utils/usage';
+import {
+  loadModelPriceSyncMeta,
+  loadModelPrices,
+  saveModelPrices,
+  type ModelPrice,
+  type ModelPriceSyncMeta,
+} from '@/utils/usage';
+
+export interface SyncModelPricesOptions {
+  silent?: boolean;
+}
 
 export interface UsagePayload {
   total_requests?: number;
@@ -20,7 +35,10 @@ export interface UseUsageDataReturn {
   error: string;
   lastRefreshedAt: Date | null;
   modelPrices: Record<string, ModelPrice>;
+  modelPriceSyncMeta: ModelPriceSyncMeta | null;
   setModelPrices: (prices: Record<string, ModelPrice>) => void;
+  syncModelPrices: (modelNames: string[], options?: SyncModelPricesOptions) => Promise<void>;
+  syncingModelPrices: boolean;
   loadUsage: () => Promise<void>;
   handleExport: () => Promise<void>;
   handleImport: () => void;
@@ -39,7 +57,9 @@ export function useUsageData(): UseUsageDataReturn {
   const lastRefreshedAtTs = useUsageStatsStore((state) => state.lastRefreshedAt);
   const loadUsageStats = useUsageStatsStore((state) => state.loadUsageStats);
 
-  const [modelPrices, setModelPrices] = useState<Record<string, ModelPrice>>({});
+  const [modelPrices, setModelPricesState] = useState<Record<string, ModelPrice>>({});
+  const [modelPriceSyncMeta, setModelPriceSyncMeta] = useState<ModelPriceSyncMeta | null>(null);
+  const [syncingModelPrices, setSyncingModelPrices] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -50,7 +70,8 @@ export function useUsageData(): UseUsageDataReturn {
 
   useEffect(() => {
     void loadUsageStats({ staleTimeMs: USAGE_STATS_STALE_TIME_MS }).catch(() => {});
-    setModelPrices(loadModelPrices());
+    setModelPricesState(loadModelPrices());
+    setModelPriceSyncMeta(loadModelPriceSyncMeta());
   }, [loadUsageStats]);
 
   const handleExport = async () => {
@@ -65,7 +86,7 @@ export function useUsageData(): UseUsageDataReturn {
       const filename = `usage-export-${safeTimestamp.replace(/[:.]/g, '-')}.json`;
       downloadBlob({
         filename,
-        blob: new Blob([JSON.stringify(data ?? {}, null, 2)], { type: 'application/json' })
+        blob: new Blob([JSON.stringify(data ?? {}, null, 2)], { type: 'application/json' }),
       });
       showNotification(t('usage_stats.export_success'), 'success');
     } catch (err: unknown) {
@@ -105,7 +126,7 @@ export function useUsageData(): UseUsageDataReturn {
           added: result?.added ?? 0,
           skipped: result?.skipped ?? 0,
           total: result?.total_requests ?? 0,
-          failed: result?.failed_requests ?? 0
+          failed: result?.failed_requests ?? 0,
         }),
         'success'
       );
@@ -130,9 +151,68 @@ export function useUsageData(): UseUsageDataReturn {
   };
 
   const handleSetModelPrices = useCallback((prices: Record<string, ModelPrice>) => {
-    setModelPrices(prices);
-    saveModelPrices(prices);
+    const syncMeta: ModelPriceSyncMeta = {
+      source: 'manual',
+      syncedAt: new Date().toISOString(),
+    };
+
+    setModelPricesState(prices);
+    setModelPriceSyncMeta(syncMeta);
+    saveModelPrices(prices, syncMeta);
   }, []);
+
+  const syncModelPrices = useCallback(
+    async (modelNames: string[], options: SyncModelPricesOptions = {}) => {
+      if (syncingModelPrices || modelNames.length === 0) {
+        return;
+      }
+
+      setSyncingModelPrices(true);
+      try {
+        const remoteResult = await fetchRemoteModelPrices();
+        const matchedPrices = matchRemoteModelPrices(modelNames, remoteResult.prices);
+        const matchedCount = Object.keys(matchedPrices).length;
+
+        if (!matchedCount) {
+          if (!options.silent) {
+            showNotification(t('usage_stats.model_price_sync_empty'), 'error');
+          }
+          return;
+        }
+
+        const nextPrices = { ...modelPrices, ...matchedPrices };
+        const syncMeta: ModelPriceSyncMeta = {
+          source: 'remote',
+          syncedAt: new Date().toISOString(),
+          remoteUrl: remoteResult.sourceUrl || MODEL_PRICE_REMOTE_URL,
+          importedCount: remoteResult.importedCount,
+          matchedCount,
+        };
+
+        setModelPricesState(nextPrices);
+        setModelPriceSyncMeta(syncMeta);
+        saveModelPrices(nextPrices, syncMeta);
+
+        if (!options.silent) {
+          showNotification(
+            t('usage_stats.model_price_sync_success', { count: matchedCount }),
+            'success'
+          );
+        }
+      } catch (err: unknown) {
+        if (!options.silent) {
+          const message = err instanceof Error ? err.message : '';
+          showNotification(
+            `${t('usage_stats.model_price_sync_failed')}${message ? `: ${message}` : ''}`,
+            'error'
+          );
+        }
+      } finally {
+        setSyncingModelPrices(false);
+      }
+    },
+    [modelPrices, showNotification, syncingModelPrices, t]
+  );
 
   const usage = usageSnapshot as UsagePayload | null;
   const error = storeError || '';
@@ -144,13 +224,16 @@ export function useUsageData(): UseUsageDataReturn {
     error,
     lastRefreshedAt,
     modelPrices,
+    modelPriceSyncMeta,
     setModelPrices: handleSetModelPrices,
+    syncModelPrices,
+    syncingModelPrices,
     loadUsage,
     handleExport,
     handleImport,
     handleImportChange,
     importInputRef,
     exporting,
-    importing
+    importing,
   };
 }

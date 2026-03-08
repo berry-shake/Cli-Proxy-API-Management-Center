@@ -192,6 +192,7 @@ The following features are consistent with the official version, providing a bet
 - RPM/TPM real-time rates
 - Cache and reasoning token breakdown
 - Cost estimation (supports custom prices)
+- Model pricing can auto-match current usage models from a remote pricing catalog
 
 ### Configuration Management
 - Online editing of `config.yaml`
