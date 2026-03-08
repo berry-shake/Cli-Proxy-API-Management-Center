@@ -57,8 +57,13 @@ export function useUsageData(): UseUsageDataReturn {
   const lastRefreshedAtTs = useUsageStatsStore((state) => state.lastRefreshedAt);
   const loadUsageStats = useUsageStatsStore((state) => state.loadUsageStats);
 
-  const [modelPrices, setModelPricesState] = useState<Record<string, ModelPrice>>({});
-  const [modelPriceSyncMeta, setModelPriceSyncMeta] = useState<ModelPriceSyncMeta | null>(null);
+  const [modelPrices, setModelPricesState] = useState<Record<string, ModelPrice>>(() =>
+    loadModelPrices()
+  );
+  const [modelPriceSyncMeta, setModelPriceSyncMeta] = useState<ModelPriceSyncMeta | null>(() =>
+    loadModelPriceSyncMeta()
+  );
+  const modelPricesRef = useRef(modelPrices);
   const [syncingModelPrices, setSyncingModelPrices] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -70,9 +75,11 @@ export function useUsageData(): UseUsageDataReturn {
 
   useEffect(() => {
     void loadUsageStats({ staleTimeMs: USAGE_STATS_STALE_TIME_MS }).catch(() => {});
-    setModelPricesState(loadModelPrices());
-    setModelPriceSyncMeta(loadModelPriceSyncMeta());
   }, [loadUsageStats]);
+
+  useEffect(() => {
+    modelPricesRef.current = modelPrices;
+  }, [modelPrices]);
 
   const handleExport = async () => {
     setExporting(true);
@@ -156,6 +163,7 @@ export function useUsageData(): UseUsageDataReturn {
       syncedAt: new Date().toISOString(),
     };
 
+    modelPricesRef.current = prices;
     setModelPricesState(prices);
     setModelPriceSyncMeta(syncMeta);
     saveModelPrices(prices, syncMeta);
@@ -180,7 +188,7 @@ export function useUsageData(): UseUsageDataReturn {
           return;
         }
 
-        const nextPrices = { ...modelPrices, ...matchedPrices };
+        const nextPrices = { ...modelPricesRef.current, ...matchedPrices };
         const syncMeta: ModelPriceSyncMeta = {
           source: 'remote',
           syncedAt: new Date().toISOString(),
@@ -189,6 +197,7 @@ export function useUsageData(): UseUsageDataReturn {
           matchedCount,
         };
 
+        modelPricesRef.current = nextPrices;
         setModelPricesState(nextPrices);
         setModelPriceSyncMeta(syncMeta);
         saveModelPrices(nextPrices, syncMeta);
@@ -211,7 +220,7 @@ export function useUsageData(): UseUsageDataReturn {
         setSyncingModelPrices(false);
       }
     },
-    [modelPrices, showNotification, syncingModelPrices, t]
+    [showNotification, syncingModelPrices, t]
   );
 
   const usage = usageSnapshot as UsagePayload | null;

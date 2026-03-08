@@ -59,7 +59,6 @@ const TIME_RANGE_STORAGE_KEY = 'cli-proxy-usage-time-range-v1';
 const DEFAULT_CHART_LINES = ['all'];
 const DEFAULT_TIME_RANGE: UsageTimeRange = '24h';
 const MAX_CHART_LINES = 9;
-const MODEL_PRICE_AUTO_SYNC_STALE_MS = 24 * 60 * 60 * 1000;
 const TIME_RANGE_OPTIONS: ReadonlyArray<{ value: UsageTimeRange; labelKey: string }> = [
   { value: 'all', labelKey: 'usage_stats.range_all' },
   { value: '7h', labelKey: 'usage_stats.range_7h' },
@@ -220,28 +219,6 @@ export function UsagePage() {
     [filteredUsage, modelPrices]
   );
   const hasPrices = modelPriceCount > 0;
-
-  useEffect(() => {
-    if (loading || !usage || modelNames.length === 0) {
-      return;
-    }
-
-    const hasLocalPrices = modelPriceCount > 0;
-    const syncedAtMs =
-      modelPriceSyncMeta?.source === 'remote' && modelPriceSyncMeta.syncedAt
-        ? Date.parse(modelPriceSyncMeta.syncedAt)
-        : Number.NaN;
-    const remotePriceCacheStale =
-      !Number.isFinite(syncedAtMs) || Date.now() - syncedAtMs > MODEL_PRICE_AUTO_SYNC_STALE_MS;
-    const shouldAutoSync =
-      !hasLocalPrices || (modelPriceSyncMeta?.source === 'remote' && remotePriceCacheStale);
-
-    if (!shouldAutoSync) {
-      return;
-    }
-
-    void syncModelPrices(modelNames, { silent: hasLocalPrices });
-  }, [loading, modelNames, modelPriceCount, modelPriceSyncMeta, syncModelPrices, usage]);
 
   return (
     <div className={styles.container}>
