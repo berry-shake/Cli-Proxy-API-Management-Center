@@ -15,6 +15,7 @@ import {
   formatTimestamp,
   getRateClassName,
   getProviderDisplayParts,
+  filterDataByTimeRange,
   type DateRange,
 } from '@/utils/monitor';
 import type { UsageData } from '@/pages/MonitorPage';
@@ -162,59 +163,8 @@ export function RequestLogs({ data, loading: parentLoading, providerMap, provide
     setLogLoading(true);
     try {
       const response = await usageApi.getUsage();
-      const usageData = (response?.usage ?? response) as Record<string, unknown>;
-
-      // 应用时间范围过滤
-      if (usageData?.apis) {
-        const apis = usageData.apis as UsageData['apis'];
-        const now = new Date();
-        let cutoffStart: Date;
-        let cutoffEnd: Date = new Date(now.getTime());
-        cutoffEnd.setHours(23, 59, 59, 999);
-
-        if (timeRange === 'custom' && customRange) {
-          cutoffStart = customRange.start;
-          cutoffEnd = customRange.end;
-        } else if (typeof timeRange === 'number') {
-          cutoffStart = new Date(now.getTime() - timeRange * 24 * 60 * 60 * 1000);
-          cutoffStart.setHours(0, 0, 0, 0);
-        } else {
-          cutoffStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          cutoffStart.setHours(0, 0, 0, 0);
-        }
-
-        const filtered: UsageData = { apis: {} };
-
-        Object.entries(apis).forEach(([apiKey, apiData]) => {
-          // 如果有 API 过滤器，检查是否匹配
-          if (apiFilter && !apiKey.toLowerCase().includes(apiFilter.toLowerCase())) {
-            return;
-          }
-
-          if (!apiData?.models) return;
-
-          const filteredModels: Record<string, { details: UsageData['apis'][string]['models'][string]['details'] }> = {};
-
-          Object.entries(apiData.models).forEach(([modelName, modelData]) => {
-            if (!modelData?.details || !Array.isArray(modelData.details)) return;
-
-            const filteredDetails = modelData.details.filter((detail) => {
-              const timestamp = new Date(detail.timestamp);
-              return timestamp >= cutoffStart && timestamp <= cutoffEnd;
-            });
-
-            if (filteredDetails.length > 0) {
-              filteredModels[modelName] = { details: filteredDetails };
-            }
-          });
-
-          if (Object.keys(filteredModels).length > 0) {
-            filtered.apis[apiKey] = { models: filteredModels };
-          }
-        });
-
-        setLogData(filtered);
-      }
+      const usageData = (response?.usage ?? response) as UsageData;
+      setLogData(filterDataByTimeRange(usageData, timeRange, customRange, apiFilter));
     } catch (err) {
       console.error('日志刷新失败：', err);
     } finally {

@@ -1,13 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getTimeRangeBounds, parseDateInputValue, type DateRange } from '@/utils/monitor';
 import styles from '@/pages/MonitorPage.module.scss';
 
 export type TimeRange = 1 | 7 | 14 | 30 | 'custom';
-
-interface DateRange {
-  start: Date;
-  end: Date;
-}
 
 interface TimeRangeSelectorProps {
   value: TimeRange;
@@ -23,7 +19,7 @@ export function TimeRangeSelector({ value, onChange, customRange }: TimeRangeSel
       return formatDateForInput(customRange.start);
     }
     const date = new Date();
-    date.setDate(date.getDate() - 7);
+    date.setDate(date.getDate() - 6);
     return formatDateForInput(date);
   });
   const [endDate, setEndDate] = useState(() => {
@@ -45,9 +41,14 @@ export function TimeRangeSelector({ value, onChange, customRange }: TimeRangeSel
 
   const handleApplyCustom = useCallback(() => {
     if (startDate && endDate) {
-      const start = new Date(startDate);
+      const start = parseDateInputValue(startDate);
+      const end = parseDateInputValue(endDate);
+
+      if (!start || !end) {
+        return;
+      }
+
       start.setHours(0, 0, 0, 0);
-      const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
 
       if (start <= end) {
@@ -110,22 +111,7 @@ export function filterByTimeRange<T extends { timestamp?: string }>(
   range: TimeRange,
   customRange?: DateRange
 ): T[] {
-  const now = new Date();
-  let cutoffStart: Date;
-  let cutoffEnd: Date = new Date(now.getTime());
-  cutoffEnd.setHours(23, 59, 59, 999);
-
-  if (range === 'custom' && customRange) {
-    cutoffStart = customRange.start;
-    cutoffEnd = customRange.end;
-  } else if (typeof range === 'number') {
-    cutoffStart = new Date(now.getTime() - range * 24 * 60 * 60 * 1000);
-    cutoffStart.setHours(0, 0, 0, 0);
-  } else {
-    // 默认7天
-    cutoffStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    cutoffStart.setHours(0, 0, 0, 0);
-  }
+  const { start: cutoffStart, end: cutoffEnd } = getTimeRangeBounds(range, customRange);
 
   return items.filter((item) => {
     if (!item.timestamp) return false;

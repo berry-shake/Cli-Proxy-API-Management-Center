@@ -206,6 +206,140 @@ export function createDisableState(
 export type TimeRangeValue = number | 'custom';
 
 /**
+ * 计算时间范围的起止边界
+ * 数字范围按“包含今天在内的最近 N 个自然日”处理
+ * @param timeRange 时间范围（天数或 'custom'）
+ * @param customRange 自定义日期范围
+ * @param now 当前时间，便于测试或复用
+ * @returns 起止时间
+ */
+export function getTimeRangeBounds(
+  timeRange: TimeRangeValue,
+  customRange?: DateRange,
+  now: Date = new Date()
+): DateRange {
+  if (timeRange === 'custom' && customRange) {
+    return {
+      start: new Date(customRange.start.getTime()),
+      end: new Date(customRange.end.getTime()),
+    };
+  }
+
+  const normalizedRange = typeof timeRange === 'number' && timeRange > 0 ? timeRange : 7;
+  const start = new Date(now.getTime());
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (normalizedRange - 1));
+
+  const end = new Date(now.getTime());
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+/**
+ * 将日期格式化为本地日期键 YYYY-MM-DD
+ * @param date 日期对象
+ * @returns 本地日期键
+ */
+export function formatLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * 将日期格式化为本地小时键 YYYY-MM-DDTHH
+ * @param date 日期对象
+ * @returns 本地小时键
+ */
+export function formatLocalHourKey(date: Date): string {
+  return `${formatLocalDateKey(date)}T${String(date.getHours()).padStart(2, '0')}`;
+}
+
+/**
+ * 解析日期输入框的 YYYY-MM-DD 为本地日期
+ * @param value 日期字符串
+ * @returns 本地 Date 或 null
+ */
+export function parseDateInputValue(value: string): Date | null {
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+/**
+ * 计算小时级图表的本地时间窗口
+ * @param hourRange 小时范围
+ * @param now 当前时间
+ * @returns 小时窗口起止和桶数量
+ */
+export function getHourlyRangeBounds(
+  hourRange: number,
+  now: Date = new Date()
+): { start: Date; end: Date; bucketCount: number } {
+  const bucketCount =
+    Number.isFinite(hourRange) && hourRange > 0 ? Math.floor(hourRange) : 24;
+  const end = new Date(now.getTime());
+  end.setMinutes(0, 0, 0);
+
+  const start = new Date(end.getTime());
+  start.setHours(start.getHours() - (bucketCount - 1));
+
+  return { start, end, bucketCount };
+}
+
+/**
+ * 仅按 API 过滤器过滤数据
+ * @param data 原始数据
+ * @param apiFilter API 过滤关键词
+ * @returns 过滤后的数据
+ */
+export function filterDataByApiFilter(
+  data: UsageData | null,
+  apiFilter = ''
+): UsageData | null {
+  if (!data?.apis) return null;
+
+  const normalizedApiFilter = apiFilter.trim().toLowerCase();
+  if (!normalizedApiFilter) {
+    return data;
+  }
+
+  const filtered: UsageData = { apis: {} };
+
+  Object.entries(data.apis).forEach(([apiKey, apiData]) => {
+    if (!apiKey.toLowerCase().includes(normalizedApiFilter)) {
+      return;
+    }
+
+    if (!apiData?.models) {
+      return;
+    }
+
+    filtered.apis[apiKey] = apiData;
+  });
+
+  return filtered;
+}
+
+/**
  * 根据时间范围过滤数据
  * @param data 原始数据
  * @param timeRange 时间范围（天数或 'custom'）
@@ -215,29 +349,16 @@ export type TimeRangeValue = number | 'custom';
 export function filterDataByTimeRange(
   data: UsageData | null,
   timeRange: TimeRangeValue,
-  customRange?: DateRange
+  customRange?: DateRange,
+  apiFilter = ''
 ): UsageData | null {
-  if (!data?.apis) return null;
-
-  const now = new Date();
-  let cutoffStart: Date;
-  let cutoffEnd: Date = new Date(now.getTime());
-  cutoffEnd.setHours(23, 59, 59, 999);
-
-  if (timeRange === 'custom' && customRange) {
-    cutoffStart = customRange.start;
-    cutoffEnd = customRange.end;
-  } else if (typeof timeRange === 'number') {
-    cutoffStart = new Date(now.getTime() - timeRange * 24 * 60 * 60 * 1000);
-    cutoffStart.setHours(0, 0, 0, 0);
-  } else {
-    cutoffStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    cutoffStart.setHours(0, 0, 0, 0);
-  }
+  const apiFilteredData = filterDataByApiFilter(data, apiFilter);
+  if (!apiFilteredData?.apis) return null;
+  const { start: cutoffStart, end: cutoffEnd } = getTimeRangeBounds(timeRange, customRange);
 
   const filtered: UsageData = { apis: {} };
 
-  Object.entries(data.apis).forEach(([apiKey, apiData]) => {
+  Object.entries(apiFilteredData.apis).forEach(([apiKey, apiData]) => {
     if (!apiData?.models) return;
 
     const filteredModels: Record<string, { details: UsageData['apis'][string]['models'][string]['details'] }> = {};

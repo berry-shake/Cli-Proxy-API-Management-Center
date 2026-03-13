@@ -20,6 +20,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { useThemeStore } from '@/stores';
 import { usageApi, providersApi, authFilesApi } from '@/services/api';
+import { filterDataByApiFilter, filterDataByTimeRange } from '@/utils/monitor';
 import { buildSourceInfoMap } from '@/utils/sourceResolver';
 import { normalizeAuthIndex } from '@/utils/usage';
 import type { CredentialInfo } from '@/types/sourceInfo';
@@ -259,52 +260,13 @@ export function MonitorPage() {
   useHeaderRefresh(loadData);
 
   // 根据时间范围过滤数据
+  const apiFilteredData = useMemo(() => {
+    return filterDataByApiFilter(usageData, apiFilter);
+  }, [usageData, apiFilter]);
+
   const filteredData = useMemo(() => {
-    if (!usageData?.apis) {
-      return null;
-    }
-
-    const now = new Date();
-    const cutoffTime = new Date(now.getTime() - timeRange * 24 * 60 * 60 * 1000);
-
-    const filtered: UsageData = { apis: {} };
-
-    Object.entries(usageData.apis).forEach(([apiKey, apiData]) => {
-      // 如果有 API 过滤器，检查是否匹配
-      if (apiFilter && !apiKey.toLowerCase().includes(apiFilter.toLowerCase())) {
-        return;
-      }
-
-      // 检查 apiData 是否有 models 属性
-      if (!apiData?.models) {
-        return;
-      }
-
-      const filteredModels: Record<string, { details: UsageDetail[] }> = {};
-
-      Object.entries(apiData.models).forEach(([modelName, modelData]) => {
-        // 检查 modelData 是否有 details 属性
-        if (!modelData?.details || !Array.isArray(modelData.details)) {
-          return;
-        }
-
-        const filteredDetails = modelData.details.filter((detail) => {
-          const timestamp = new Date(detail.timestamp);
-          return timestamp >= cutoffTime;
-        });
-
-        if (filteredDetails.length > 0) {
-          filteredModels[modelName] = { details: filteredDetails };
-        }
-      });
-
-      if (Object.keys(filteredModels).length > 0) {
-        filtered.apis[apiKey] = { models: filteredModels };
-      }
-    });
-
-    return filtered;
-  }, [usageData, timeRange, apiFilter]);
+    return filterDataByTimeRange(apiFilteredData, timeRange);
+  }, [apiFilteredData, timeRange]);
 
   // 处理时间范围变化
   const handleTimeRangeChange = (range: TimeRange) => {
@@ -386,8 +348,8 @@ export function MonitorPage() {
       </div>
 
       {/* 小时级图表 */}
-      <HourlyModelChart data={filteredData} loading={loading} isDark={isDark} />
-      <HourlyTokenChart data={filteredData} loading={loading} isDark={isDark} />
+      <HourlyModelChart data={apiFilteredData} loading={loading} isDark={isDark} />
+      <HourlyTokenChart data={apiFilteredData} loading={loading} isDark={isDark} />
 
       {/* 统计表格 */}
       <div className={styles.statsGrid}>

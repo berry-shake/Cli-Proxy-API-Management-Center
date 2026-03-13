@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Chart } from 'react-chartjs-2';
 import type { UsageData } from '@/pages/MonitorPage';
+import { formatLocalDateKey } from '@/utils/monitor';
 import styles from '@/pages/MonitorPage.module.scss';
 
 interface DailyTrendChartProps {
@@ -39,20 +40,11 @@ export function DailyTrendChart({ data, loading, isDark, timeRange }: DailyTrend
       cachedTokens: number;
     }> = {};
 
-    // 辅助函数：获取本地日期字符串 YYYY-MM-DD
-    const getLocalDateString = (timestamp: string): string => {
-      const date = new Date(timestamp);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
     Object.values(data.apis).forEach((apiData) => {
       Object.values(apiData.models).forEach((modelData) => {
         modelData.details.forEach((detail) => {
           // 使用本地日期而非 UTC 日期
-          const date = getLocalDateString(detail.timestamp);
+          const date = formatLocalDateKey(new Date(detail.timestamp));
           if (!dailyStats[date]) {
             dailyStats[date] = {
               requests: 0,
@@ -88,8 +80,8 @@ export function DailyTrendChart({ data, loading, isDark, timeRange }: DailyTrend
   // 图表数据
   const chartData = useMemo(() => {
     const labels = dailyData.map((item) => {
-      const date = new Date(item.date);
-      return `${date.getMonth() + 1}/${date.getDate()}`;
+      const [, month, day] = item.date.split('-');
+      return `${Number(month)}/${Number(day)}`;
     });
 
     return {

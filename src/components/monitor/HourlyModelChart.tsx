@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Chart } from 'react-chartjs-2';
 import type { UsageData } from '@/pages/MonitorPage';
+import { formatLocalHourKey, getHourlyRangeBounds } from '@/utils/monitor';
 import styles from '@/pages/MonitorPage.module.scss';
 
 interface HourlyModelChartProps {
@@ -30,20 +31,13 @@ export function HourlyModelChart({ data, loading, isDark }: HourlyModelChartProp
   const hourlyData = useMemo(() => {
     if (!data?.apis) return { hours: [], models: [], modelData: {} as Record<string, number[]>, successRates: [] };
 
-    const now = new Date();
-    let cutoffTime: Date;
-    let hoursCount: number;
-
-    cutoffTime = new Date(now.getTime() - hourRange * 60 * 60 * 1000);
-    cutoffTime.setMinutes(0, 0, 0);
-    hoursCount = hourRange + 1;
+    const { start: cutoffTime, end: currentHour, bucketCount } = getHourlyRangeBounds(hourRange);
 
     // 生成所有小时的时间点
     const allHours: string[] = [];
-    for (let i = 0; i < hoursCount; i++) {
+    for (let i = 0; i < bucketCount; i++) {
       const hourTime = new Date(cutoffTime.getTime() + i * 60 * 60 * 1000);
-      const hourKey = hourTime.toISOString().slice(0, 13); // YYYY-MM-DDTHH
-      allHours.push(hourKey);
+      allHours.push(formatLocalHourKey(hourTime));
     }
 
     // 收集每小时每个模型的请求数
@@ -60,9 +54,10 @@ export function HourlyModelChart({ data, loading, isDark }: HourlyModelChartProp
         modelSet.add(modelName);
         modelData.details.forEach((detail) => {
           const timestamp = new Date(detail.timestamp);
-          if (timestamp < cutoffTime) return;
+          timestamp.setMinutes(0, 0, 0);
+          if (timestamp < cutoffTime || timestamp > currentHour) return;
 
-          const hourKey = timestamp.toISOString().slice(0, 13); // YYYY-MM-DDTHH
+          const hourKey = formatLocalHourKey(timestamp);
           if (!hourlyStats[hourKey]) {
             hourlyStats[hourKey] = {};
           }
@@ -127,8 +122,7 @@ export function HourlyModelChart({ data, loading, isDark }: HourlyModelChartProp
   // 图表数据
   const chartData = useMemo(() => {
     const labels = hourlyData.hours.map((hour) => {
-      const date = new Date(hour + ':00:00Z'); // 添加 Z 表示 UTC 时间，确保正确转换为本地时间显示
-      return `${date.getHours()}:00`;
+      return `${Number(hour.slice(11, 13))}:00`;
     });
 
     // 成功率折线放在最前面
