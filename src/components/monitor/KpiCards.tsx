@@ -54,8 +54,9 @@ export function KpiCards({ data, loading, timeRange }: KpiCardsProps) {
     let reasoningTokens = 0;
     let cachedTokens = 0;
 
-    // 收集所有时间戳用于计算 TPM/RPM
-    const timestamps: number[] = [];
+    // 追踪时间戳范围用于计算 TPM/RPM
+    let minTime = Infinity;
+    let maxTime = -Infinity;
 
     Object.values(data.apis).forEach((apiData) => {
       Object.values(apiData.models).forEach((modelData) => {
@@ -73,7 +74,9 @@ export function KpiCards({ data, loading, timeRange }: KpiCardsProps) {
           reasoningTokens += detail.tokens.reasoning_tokens || 0;
           cachedTokens += detail.tokens.cached_tokens || 0;
 
-          timestamps.push(new Date(detail.timestamp).getTime());
+          const ts = new Date(detail.timestamp).getTime();
+          if (ts < minTime) minTime = ts;
+          if (ts > maxTime) maxTime = ts;
         });
       });
     });
@@ -85,9 +88,7 @@ export function KpiCards({ data, loading, timeRange }: KpiCardsProps) {
     let avgRpm = 0;
     let avgRpd = 0;
 
-    if (timestamps.length > 0) {
-      const minTime = Math.min(...timestamps);
-      const maxTime = Math.max(...timestamps);
+    if (minTime !== Infinity) {
       const timeSpanMinutes = Math.max((maxTime - minTime) / (1000 * 60), 1);
       const timeSpanDays = Math.max(timeSpanMinutes / (60 * 24), 1);
 
