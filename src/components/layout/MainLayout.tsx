@@ -13,16 +13,16 @@ import { Button } from '@/components/ui/Button';
 import { PageTransition } from '@/components/common/PageTransition';
 import { MainRoutes } from '@/router/MainRoutes';
 import {
-  IconBot,
-  IconChartLine,
-  IconFileText,
-  IconInfo,
-  IconLayoutDashboard,
-  IconScrollText,
-  IconSettings,
-  IconShield,
-  IconTimer,
   IconActivity,
+  IconSidebarAuthFiles,
+  IconSidebarConfig,
+  IconSidebarDashboard,
+  IconSidebarLogs,
+  IconSidebarOauth,
+  IconSidebarProviders,
+  IconSidebarQuota,
+  IconSidebarSystem,
+  IconSidebarUsage,
 } from '@/components/ui/icons';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
 import {
@@ -32,7 +32,6 @@ import {
   useNotificationStore,
   useThemeStore,
 } from '@/stores';
-import { versionApi } from '@/services/api';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { LANGUAGE_LABEL_KEYS, LANGUAGE_ORDER } from '@/utils/constants';
 import { isSupportedLanguage } from '@/utils/language';
@@ -40,23 +39,34 @@ import { useAutoBackup } from '@/features/webdavBackup/hooks/useAutoBackup';
 import type { Theme } from '@/types';
 
 const sidebarIcons: Record<string, ReactNode> = {
-  dashboard: <IconLayoutDashboard size={18} />,
-  aiProviders: <IconBot size={18} />,
-  authFiles: <IconFileText size={18} />,
-  oauth: <IconShield size={18} />,
-  quota: <IconTimer size={18} />,
-  usage: <IconChartLine size={18} />,
-  config: <IconSettings size={18} />,
-  logs: <IconScrollText size={18} />,
-  system: <IconInfo size={18} />,
+  dashboard: <IconSidebarDashboard size={18} />,
+  aiProviders: <IconSidebarProviders size={18} />,
+  authFiles: <IconSidebarAuthFiles size={18} />,
+  oauth: <IconSidebarOauth size={18} />,
+  quota: <IconSidebarQuota size={18} />,
+  usage: <IconSidebarUsage size={18} />,
+  config: <IconSidebarConfig size={18} />,
+  logs: <IconSidebarLogs size={18} />,
+  system: <IconSidebarSystem size={18} />,
   monitor: <IconActivity size={18} />,
   backup: (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-         fill="none" stroke="currentColor" strokeWidth="2"
-         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2v8"/><path d="m16 6-4 4-4-4"/>
-      <rect width="20" height="8" x="2" y="14" rx="2"/>
-      <path d="M6 18h.01"/><path d="M10 18h.01"/>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 2v8" />
+      <path d="m16 6-4 4-4-4" />
+      <rect width="20" height="8" x="2" y="14" rx="2" />
+      <path d="M6 18h.01" />
+      <path d="M10 18h.01" />
     </svg>
   ),
 };
@@ -80,12 +90,6 @@ const headerIcons = {
     <svg {...headerIconProps}>
       <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
       <path d="M21 3v5h-5" />
-    </svg>
-  ),
-  update: (
-    <svg {...headerIconProps}>
-      <path d="M12 19V5" />
-      <path d="m5 12 7-7 7 7" />
     </svg>
   ),
   menu: (
@@ -144,7 +148,13 @@ const headerIcons = {
         </clipPath>
       </defs>
       <circle cx="12" cy="12" r="4" />
-      <circle cx="12" cy="12" r="4" clipPath="url(#mainLayoutAutoThemeSunLeftHalf)" fill="currentColor" />
+      <circle
+        cx="12"
+        cy="12"
+        r="4"
+        clipPath="url(#mainLayoutAutoThemeSunLeftHalf)"
+        fill="currentColor"
+      />
       <path d="M12 2v2" />
       <path d="M12 20v2" />
       <path d="M4.93 4.93l1.41 1.41" />
@@ -183,45 +193,37 @@ const THEME_CARDS: Array<{
   {
     key: 'white',
     labelKey: 'theme.white',
-    colors: { bg: '#ffffff', card: '#ffffff', border: '#e5e5e5', text: '#2d2a26', textMuted: '#a29c95' },
+    colors: {
+      bg: '#ffffff',
+      card: '#ffffff',
+      border: '#e5e5e5',
+      text: '#2d2a26',
+      textMuted: '#a29c95',
+    },
   },
   {
     key: 'light',
     labelKey: 'theme.light',
-    colors: { bg: '#faf9f5', card: '#f0eee8', border: '#e3e1db', text: '#2d2a26', textMuted: '#a29c95' },
+    colors: {
+      bg: '#faf9f5',
+      card: '#f0eee8',
+      border: '#e3e1db',
+      text: '#2d2a26',
+      textMuted: '#a29c95',
+    },
   },
   {
     key: 'dark',
     labelKey: 'theme.dark',
-    colors: { bg: '#151412', card: '#1d1b18', border: '#3a3530', text: '#f6f4f1', textMuted: '#9c958d' },
+    colors: {
+      bg: '#151412',
+      card: '#1d1b18',
+      border: '#3a3530',
+      text: '#f6f4f1',
+      textMuted: '#9c958d',
+    },
   },
 ];
-
-const parseVersionSegments = (version?: string | null) => {
-  if (!version) return null;
-  const cleaned = version.trim().replace(/^v/i, '');
-  if (!cleaned) return null;
-  const parts = cleaned
-    .split(/[^0-9]+/)
-    .filter(Boolean)
-    .map((segment) => Number.parseInt(segment, 10))
-    .filter(Number.isFinite);
-  return parts.length ? parts : null;
-};
-
-const compareVersions = (latest?: string | null, current?: string | null) => {
-  const latestParts = parseVersionSegments(latest);
-  const currentParts = parseVersionSegments(current);
-  if (!latestParts || !currentParts) return null;
-  const length = Math.max(latestParts.length, currentParts.length);
-  for (let i = 0; i < length; i++) {
-    const l = latestParts[i] || 0;
-    const c = currentParts[i] || 0;
-    if (l > c) return 1;
-    if (l < c) return -1;
-  }
-  return 0;
-};
 
 export function MainLayout() {
   const { t } = useTranslation();
@@ -232,7 +234,6 @@ export function MainLayout() {
   useAutoBackup();
 
   const apiBase = useAuthStore((state) => state.apiBase);
-  const serverVersion = useAuthStore((state) => state.serverVersion);
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const logout = useAuthStore((state) => state.logout);
 
@@ -247,7 +248,6 @@ export function MainLayout() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [checkingVersion, setCheckingVersion] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [brandExpanded, setBrandExpanded] = useState(true);
@@ -435,7 +435,6 @@ export function MainLayout() {
     });
   }, [fetchConfig]);
 
-
   const statusClass =
     connectionStatus === 'connected'
       ? 'success'
@@ -520,7 +519,7 @@ export function MainLayout() {
     clearCache();
     const results = await Promise.allSettled([
       fetchConfig(undefined, true),
-      triggerHeaderRefresh()
+      triggerHeaderRefresh(),
     ]);
     const rejected = results.find((result) => result.status === 'rejected');
     if (rejected && rejected.status === 'rejected') {
@@ -534,39 +533,6 @@ export function MainLayout() {
       return;
     }
     showNotification(t('notification.data_refreshed'), 'success');
-  };
-
-  const handleVersionCheck = async () => {
-    setCheckingVersion(true);
-    try {
-      const data = await versionApi.checkLatest();
-      const latestRaw = data?.['latest-version'] ?? data?.latest_version ?? data?.latest ?? '';
-      const latest = typeof latestRaw === 'string' ? latestRaw : String(latestRaw ?? '');
-      const comparison = compareVersions(latest, serverVersion);
-
-      if (!latest) {
-        showNotification(t('system_info.version_check_error'), 'error');
-        return;
-      }
-
-      if (comparison === null) {
-        showNotification(t('system_info.version_current_missing'), 'warning');
-        return;
-      }
-
-      if (comparison > 0) {
-        showNotification(t('system_info.version_update_available', { version: latest }), 'warning');
-      } else {
-        showNotification(t('system_info.version_is_latest'), 'success');
-      }
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : typeof error === 'string' ? error : '';
-      const suffix = message ? `: ${message}` : '';
-      showNotification(`${t('system_info.version_check_error')}${suffix}`, 'error');
-    } finally {
-      setCheckingVersion(false);
-    }
   };
 
   return (
@@ -626,16 +592,10 @@ export function MainLayout() {
             >
               {headerIcons.refresh}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleVersionCheck}
-              loading={checkingVersion}
-              title={t('system_info.version_check_button')}
+            <div
+              className={`language-menu ${languageMenuOpen ? 'open' : ''}`}
+              ref={languageMenuRef}
             >
-              {headerIcons.update}
-            </Button>
-            <div className={`language-menu ${languageMenuOpen ? 'open' : ''}`} ref={languageMenuRef}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -648,7 +608,11 @@ export function MainLayout() {
                 {headerIcons.language}
               </Button>
               {languageMenuOpen && (
-                <div className="notification entering language-menu-popover" role="menu" aria-label={t('language.switch')}>
+                <div
+                  className="notification entering language-menu-popover"
+                  role="menu"
+                  aria-label={t('language.switch')}
+                >
                   {LANGUAGE_ORDER.map((lang) => (
                     <button
                       key={lang}
@@ -684,7 +648,11 @@ export function MainLayout() {
                       : headerIcons.sun}
               </Button>
               {themeMenuOpen && (
-                <div className="notification entering theme-menu-popover" role="menu" aria-label={t('theme.switch')}>
+                <div
+                  className="notification entering theme-menu-popover"
+                  role="menu"
+                  aria-label={t('theme.switch')}
+                >
                   {THEME_CARDS.map((tc) => (
                     <button
                       key={tc.key}
@@ -696,7 +664,10 @@ export function MainLayout() {
                     >
                       <div
                         className="theme-card-preview"
-                        style={{ background: tc.colors.bg, border: `1px solid ${tc.colors.border}` }}
+                        style={{
+                          background: tc.colors.bg,
+                          border: `1px solid ${tc.colors.border}`,
+                        }}
                       >
                         <div
                           className="theme-card-header"
@@ -739,6 +710,15 @@ export function MainLayout() {
       </header>
 
       <div className="main-body">
+        <button
+          type="button"
+          className={`sidebar-backdrop ${sidebarOpen ? 'visible' : ''}`}
+          onClick={() => setSidebarOpen(false)}
+          aria-label={t('common.close')}
+          aria-hidden={!sidebarOpen}
+          tabIndex={sidebarOpen ? 0 : -1}
+        />
+
         <aside
           className={`sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`}
         >

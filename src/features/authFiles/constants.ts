@@ -17,7 +17,6 @@ export type QuotaProviderType =
   | 'claude'
   | 'codex'
   | 'gemini-cli'
-  | 'kiro'
   | 'kimi';
 
 export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
@@ -25,7 +24,6 @@ export const QUOTA_PROVIDER_TYPES = new Set<QuotaProviderType>([
   'claude',
   'codex',
   'gemini-cli',
-  'kiro',
   'kimi'
 ]);
 
@@ -74,10 +72,6 @@ export const TYPE_COLORS: Record<string, TypeColorSet> = {
   'github-copilot': {
     light: { bg: '#ede9fe', text: '#5b21b6' },
     dark: { bg: '#312e81', text: '#c4b5fd' }
-  },
-  kiro: {
-    light: { bg: '#fff8e1', text: '#ff8f00' },
-    dark: { bg: '#ff6f00', text: '#ffe082' }
   },
   iflow: {
     light: { bg: '#f3e5f5', text: '#7b1fa2' },

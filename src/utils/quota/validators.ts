@@ -39,10 +39,6 @@ export function isGeminiCliFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'gemini-cli';
 }
 
-export function isKiroFile(file: AuthFileItem): boolean {
-  return resolveAuthProvider(file) === 'kiro';
-}
-
 export function isKimiFile(file: AuthFileItem): boolean {
   return resolveAuthProvider(file) === 'kimi';
 }

@@ -22,6 +22,7 @@ import {
   getTypeColor,
   getTypeLabel,
   isRuntimeOnlyAuthFile,
+  parsePriorityValue,
   resolveAuthFileStats,
   type QuotaProviderType,
   type ResolvedTheme,
@@ -96,9 +97,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
         ? styles.claudeCard
       : quotaType === 'codex'
         ? styles.codexCard
-        : quotaType === 'kiro'
-          ? styles.kiroCard
-          : quotaType === 'gemini-cli'
+        : quotaType === 'gemini-cli'
             ? styles.geminiCliCard
             : quotaType === 'kimi'
               ? styles.kimiCard
@@ -111,6 +110,9 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const rawStatusMessage = getAuthFileStatusMessage(file);
   const hasStatusWarning =
     Boolean(rawStatusMessage) && !HEALTHY_STATUS_MESSAGES.has(rawStatusMessage.toLowerCase());
+
+  const priorityValue = parsePriorityValue(file.priority ?? file['priority']);
+  const noteValue = typeof file.note === 'string' ? file.note.trim() : '';
 
   return (
     <div
@@ -149,7 +151,19 @@ export function AuthFileCard(props: AuthFileCardProps) {
             <span>
               {t('auth_files.file_modified')}: {formatModified(file)}
             </span>
+            {priorityValue !== undefined && (
+              <span className={styles.priorityBadge}>
+                {t('auth_files.priority_display')}: <span className={styles.priorityValue}>{priorityValue}</span>
+              </span>
+            )}
           </div>
+
+          {noteValue && (
+            <div className={styles.noteText} title={noteValue}>
+              <span className={styles.noteLabel}>{t('auth_files.note_display')}: </span>
+              {noteValue}
+            </div>
+          )}
 
           {rawStatusMessage && hasStatusWarning && (
             <div className={styles.healthStatusMessage} title={rawStatusMessage}>

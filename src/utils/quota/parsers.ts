@@ -2,7 +2,7 @@
  * Normalization and parsing functions for quota data.
  */
 
-import type { ClaudeUsagePayload, CodexUsagePayload, GeminiCliQuotaPayload, KiroQuotaPayload, KimiUsagePayload } from '@/types';
+import type { ClaudeUsagePayload, CodexUsagePayload, GeminiCliCodeAssistPayload, GeminiCliQuotaPayload, KimiUsagePayload } from '@/types';
 import { normalizeAuthIndex } from '@/utils/usage';
 
 const GEMINI_CLI_MODEL_SUFFIX = '_vertex';
@@ -191,36 +191,19 @@ export function parseGeminiCliQuotaPayload(payload: unknown): GeminiCliQuotaPayl
   return null;
 }
 
-export function parseKiroQuotaPayload(payload: unknown): KiroQuotaPayload | null {
+export function parseGeminiCliCodeAssistPayload(payload: unknown): GeminiCliCodeAssistPayload | null {
   if (payload === undefined || payload === null) return null;
   if (typeof payload === 'string') {
     const trimmed = payload.trim();
     if (!trimmed) return null;
     try {
-      return JSON.parse(trimmed) as KiroQuotaPayload;
+      return JSON.parse(trimmed) as GeminiCliCodeAssistPayload;
     } catch {
       return null;
     }
   }
   if (typeof payload === 'object') {
-    return payload as KiroQuotaPayload;
-  }
-  return null;
-}
-
-export function parseKiroErrorPayload(payload: unknown): { reason?: string; message?: string } | null {
-  if (payload === undefined || payload === null) return null;
-  if (typeof payload === 'string') {
-    const trimmed = payload.trim();
-    if (!trimmed) return null;
-    try {
-      return JSON.parse(trimmed) as { reason?: string; message?: string };
-    } catch {
-      return null;
-    }
-  }
-  if (typeof payload === 'object') {
-    return payload as { reason?: string; message?: string };
+    return payload as GeminiCliCodeAssistPayload;
   }
   return null;
 }
