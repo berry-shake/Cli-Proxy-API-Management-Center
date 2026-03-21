@@ -2,8 +2,15 @@ import type { ModelPrice } from '@/utils/usage';
 
 const TOKENS_PER_PRICE_UNIT = 1_000_000;
 
-export const MODEL_PRICE_REMOTE_URL =
+export const MODEL_PRICE_REMOTE_PRIMARY_URL =
+  'https://raw.githubusercontent.com/berry-shake/Cli-Proxy-API-Management-Center/refs/heads/sync_upstream/model_prices.json';
+export const MODEL_PRICE_REMOTE_FALLBACK_URL =
   'https://raw.githubusercontent.com/Wei-Shaw/model-price-repo/refs/heads/main/model_prices_and_context_window.json';
+export const MODEL_PRICE_REMOTE_URL = MODEL_PRICE_REMOTE_PRIMARY_URL;
+export const MODEL_PRICE_REMOTE_URLS = [
+  MODEL_PRICE_REMOTE_PRIMARY_URL,
+  MODEL_PRICE_REMOTE_FALLBACK_URL,
+] as const;
 
 export interface RemoteModelPricesResult {
   prices: Record<string, ModelPrice>;
@@ -204,12 +211,6 @@ const addModelNameCandidate = (target: Set<string>, value: string) => {
   target.add(normalized);
 };
 
-const addVersionSeparatorVariants = (target: Set<string>, value: string) => {
-  addModelNameCandidate(target, value);
-  addModelNameCandidate(target, value.replace(/(\d)\.(\d)/g, '$1-$2'));
-  addModelNameCandidate(target, value.replace(/(\d)-(\d)/g, '$1.$2'));
-};
-
 const getModelNameCandidates = (value: string): string[] => {
   const candidates = new Set<string>();
   const trimmed = value.trim();
@@ -217,20 +218,20 @@ const getModelNameCandidates = (value: string): string[] => {
     return [];
   }
 
-  addVersionSeparatorVariants(candidates, trimmed);
+  addModelNameCandidate(candidates, trimmed);
 
   const withoutModelsPrefix = trimmed.replace(/^models\//i, '');
-  addVersionSeparatorVariants(candidates, withoutModelsPrefix);
+  addModelNameCandidate(candidates, withoutModelsPrefix);
 
   const slashParts = withoutModelsPrefix.split('/').filter(Boolean);
   if (slashParts.length > 1) {
-    addVersionSeparatorVariants(candidates, slashParts.slice(1).join('/'));
-    addVersionSeparatorVariants(candidates, slashParts[slashParts.length - 1]);
+    addModelNameCandidate(candidates, slashParts.slice(1).join('/'));
+    addModelNameCandidate(candidates, slashParts[slashParts.length - 1]);
   }
 
   const withoutLatestSuffix = withoutModelsPrefix.replace(/-latest$/i, '');
   if (withoutLatestSuffix !== withoutModelsPrefix) {
-    addVersionSeparatorVariants(candidates, withoutLatestSuffix);
+    addModelNameCandidate(candidates, withoutLatestSuffix);
   }
 
   return Array.from(candidates);
@@ -331,8 +332,11 @@ export function matchRemoteModelPrices(
   }, {});
 }
 
-export async function fetchRemoteModelPrices(signal?: AbortSignal): Promise<RemoteModelPricesResult> {
-  const response = await fetch(MODEL_PRICE_REMOTE_URL, {
+async function fetchRemoteModelPricesFromUrl(
+  sourceUrl: string,
+  signal?: AbortSignal
+): Promise<RemoteModelPricesResult> {
+  const response = await fetch(sourceUrl, {
     method: 'GET',
     signal,
     cache: 'no-store',
@@ -356,6 +360,34 @@ export async function fetchRemoteModelPrices(signal?: AbortSignal): Promise<Remo
   return {
     prices,
     importedCount,
-    sourceUrl: MODEL_PRICE_REMOTE_URL,
+    sourceUrl,
+  };
+}
+
+export async function fetchRemoteModelPrices(
+  signal?: AbortSignal
+): Promise<RemoteModelPricesResult> {
+  const primaryResult = await fetchRemoteModelPricesFromUrl(
+    MODEL_PRICE_REMOTE_PRIMARY_URL,
+    signal
+  ).catch(() => null);
+  const fallbackResult = await fetchRemoteModelPricesFromUrl(
+    MODEL_PRICE_REMOTE_FALLBACK_URL,
+    signal
+  ).catch(() => null);
+
+  if (!primaryResult && !fallbackResult) {
+    throw new Error('Failed to fetch remote model prices');
+  }
+
+  const mergedPrices = {
+    ...(fallbackResult?.prices ?? {}),
+    ...(primaryResult?.prices ?? {}),
+  };
+
+  return {
+    prices: mergedPrices,
+    importedCount: Object.keys(mergedPrices).length,
+    sourceUrl: primaryResult?.sourceUrl || fallbackResult?.sourceUrl || MODEL_PRICE_REMOTE_URL,
   };
 }
