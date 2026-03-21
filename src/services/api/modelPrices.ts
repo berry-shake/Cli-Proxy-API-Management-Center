@@ -16,6 +16,9 @@ export interface RemoteModelPricesResult {
   prices: Record<string, ModelPrice>;
   importedCount: number;
   sourceUrl: string;
+  sourceUrls?: string[];
+  primaryUrl?: string;
+  fallbackUrl?: string;
 }
 
 type PriceScale = 'perToken' | 'perMillion';
@@ -361,6 +364,7 @@ async function fetchRemoteModelPricesFromUrl(
     prices,
     importedCount,
     sourceUrl,
+    sourceUrls: [sourceUrl],
   };
 }
 
@@ -389,5 +393,11 @@ export async function fetchRemoteModelPrices(
     prices: mergedPrices,
     importedCount: Object.keys(mergedPrices).length,
     sourceUrl: primaryResult?.sourceUrl || fallbackResult?.sourceUrl || MODEL_PRICE_REMOTE_URL,
+    sourceUrls: [
+      ...(primaryResult?.sourceUrl ? [primaryResult.sourceUrl] : []),
+      ...(fallbackResult?.sourceUrl ? [fallbackResult.sourceUrl] : []),
+    ],
+    primaryUrl: primaryResult?.sourceUrl,
+    fallbackUrl: fallbackResult?.sourceUrl,
   };
 }

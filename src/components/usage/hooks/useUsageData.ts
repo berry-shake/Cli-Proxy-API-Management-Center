@@ -193,6 +193,9 @@ export function useUsageData(): UseUsageDataReturn {
           source: 'remote',
           syncedAt: new Date().toISOString(),
           remoteUrl: remoteResult.sourceUrl || MODEL_PRICE_REMOTE_URL,
+          remoteUrls: remoteResult.sourceUrls,
+          primaryUrl: remoteResult.primaryUrl,
+          fallbackUrl: remoteResult.fallbackUrl,
           importedCount: remoteResult.importedCount,
           matchedCount,
         };

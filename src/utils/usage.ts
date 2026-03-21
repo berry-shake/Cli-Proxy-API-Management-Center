@@ -39,6 +39,9 @@ export interface ModelPriceSyncMeta {
   source: 'manual' | 'remote';
   syncedAt?: string;
   remoteUrl?: string;
+  remoteUrls?: string[];
+  primaryUrl?: string;
+  fallbackUrl?: string;
   importedCount?: number;
   matchedCount?: number;
 }
@@ -821,6 +824,18 @@ export function loadModelPriceSyncMeta(): ModelPriceSyncMeta | null {
     const syncedAt = typeof parsed.syncedAt === 'string' && parsed.syncedAt.trim() ? parsed.syncedAt : undefined;
     const remoteUrl =
       typeof parsed.remoteUrl === 'string' && parsed.remoteUrl.trim() ? parsed.remoteUrl : undefined;
+    const remoteUrls = Array.isArray(parsed.remoteUrls)
+      ? parsed.remoteUrls
+          .filter((item): item is string => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : remoteUrl
+        ? [remoteUrl]
+        : undefined;
+    const primaryUrl =
+      typeof parsed.primaryUrl === 'string' && parsed.primaryUrl.trim() ? parsed.primaryUrl : undefined;
+    const fallbackUrl =
+      typeof parsed.fallbackUrl === 'string' && parsed.fallbackUrl.trim() ? parsed.fallbackUrl : undefined;
     const importedCountRaw = Number(parsed.importedCount);
     const matchedCountRaw = Number(parsed.matchedCount);
 
@@ -828,6 +843,9 @@ export function loadModelPriceSyncMeta(): ModelPriceSyncMeta | null {
       source,
       syncedAt,
       remoteUrl,
+      remoteUrls: remoteUrls?.length ? remoteUrls : undefined,
+      primaryUrl,
+      fallbackUrl,
       importedCount: Number.isFinite(importedCountRaw) && importedCountRaw >= 0 ? importedCountRaw : undefined,
       matchedCount: Number.isFinite(matchedCountRaw) && matchedCountRaw >= 0 ? matchedCountRaw : undefined
     };
