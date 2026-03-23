@@ -1,5 +1,10 @@
 import type { WebdavFileInfo } from '../types';
 
+function looksLikeHtmlDocument(text: string): boolean {
+  const trimmed = text.trim().toLowerCase();
+  return trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html');
+}
+
 /**
  * 从 href 中提取文件名（最后一段非空路径）
  */
@@ -19,13 +24,17 @@ function filenameFromHref(href: string): string {
  * 解析 PROPFIND XML 响应，提取文件/目录信息
  */
 export function parsePropfindResponse(xmlText: string): WebdavFileInfo[] {
+  if (looksLikeHtmlDocument(xmlText)) {
+    throw new Error('WebDAV 返回了 HTML 页面而不是 XML，可能是地址不对、被登录页/反向代理拦截，或服务端不支持当前目录列表请求');
+  }
+
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlText, 'application/xml');
 
   // DOMParser 解析失败不会抛异常，而是返回包含 parsererror 的文档
   const parseError = doc.getElementsByTagName('parsererror')[0];
   if (parseError) {
-    throw new Error(`XML parse error: ${parseError.textContent?.slice(0, 200)}`);
+    throw new Error(`WebDAV XML 解析失败: ${parseError.textContent?.slice(0, 200)}`);
   }
 
   const results: WebdavFileInfo[] = [];

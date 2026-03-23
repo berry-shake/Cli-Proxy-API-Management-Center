@@ -42,6 +42,15 @@ function baseHeaders(config: WebdavConnectionConfig): Record<string, string> {
   };
 }
 
+function propfindHeaders(config: WebdavConnectionConfig, depth: '0' | '1'): Record<string, string> {
+  return {
+    ...baseHeaders(config),
+    Depth: depth,
+    Accept: 'application/xml, text/xml; q=0.9, */*; q=0.8',
+    'Content-Type': 'application/xml; charset=utf-8',
+  };
+}
+
 async function relay(
   method: string,
   url: string,
@@ -74,12 +83,15 @@ const PROPFIND_LIST =
 
 export const webdavClient = {
   async testConnection(config: WebdavConnectionConfig): Promise<void> {
-    await relay(
+    const resp = await relay(
       'PROPFIND',
       buildDirUrl(config),
-      { ...baseHeaders(config), Depth: '0' },
+      propfindHeaders(config, '0'),
       PROPFIND_RESOURCETYPE,
     );
+    if (typeof resp.body === 'string' && resp.body.trim()) {
+      parsePropfindResponse(resp.body);
+    }
   },
 
   async ensureDirectory(config: WebdavConnectionConfig): Promise<void> {
@@ -87,7 +99,10 @@ export const webdavClient = {
     const headers = baseHeaders(config);
 
     try {
-      await relay('PROPFIND', url, { ...headers, Depth: '0' }, PROPFIND_RESOURCETYPE);
+      const resp = await relay('PROPFIND', url, propfindHeaders(config, '0'), PROPFIND_RESOURCETYPE);
+      if (typeof resp.body === 'string' && resp.body.trim()) {
+        parsePropfindResponse(resp.body);
+      }
     } catch (err: unknown) {
       const code = (err as Error & { statusCode?: number }).statusCode;
       if (code === 404 || code === 409) {
@@ -116,7 +131,7 @@ export const webdavClient = {
     const resp = await relay(
       'PROPFIND',
       buildDirUrl(config),
-      { ...baseHeaders(config), Depth: '1' },
+      propfindHeaders(config, '1'),
       PROPFIND_LIST,
     );
     if (typeof resp.body !== 'string' || resp.body.length === 0) {
