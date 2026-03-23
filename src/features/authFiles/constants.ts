@@ -4,7 +4,6 @@ import iconClaude from '@/assets/icons/claude.svg';
 import iconCodex from '@/assets/icons/codex.svg';
 import iconGemini from '@/assets/icons/gemini.svg';
 import iconGithubCopilot from '@/assets/icons/github-copilot.svg';
-import iconGithubCopilotDark from '@/assets/icons/github-copilot-dark.svg';
 import iconIflow from '@/assets/icons/iflow.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
 import iconKimiLight from '@/assets/icons/kimi-light.svg';
@@ -125,7 +124,7 @@ export const AUTH_FILE_ICONS: Record<string, AuthFileIconAsset> = {
   codex: iconCodex,
   gemini: iconGemini,
   'gemini-cli': iconGemini,
-  'github-copilot': { light: iconGithubCopilot, dark: iconGithubCopilotDark },
+  'github-copilot': iconGithubCopilot,
   iflow: iconIflow,
   kimi: { light: iconKimiLight, dark: iconKimiDark },
   qwen: iconQwen,
