@@ -77,7 +77,7 @@ export interface ApiStats {
   failureCount: number;
   totalTokens: number;
   totalCost: number;
-  models: Record<string, { requests: number; successCount: number; failureCount: number; tokens: number }>;
+  models: Record<string, { requests: number; successCount: number; failureCount: number; tokens: number; cost: number }>;
 }
 
 export type UsageTimeRange = '7h' | '24h' | '7d' | 'all';
@@ -902,7 +902,10 @@ export function getApiStats(usageData: unknown, modelPrices: Record<string, Mode
 
   Object.entries(apis).forEach(([endpoint, apiData]) => {
     if (!isRecord(apiData)) return;
-    const models: Record<string, { requests: number; successCount: number; failureCount: number; tokens: number }> = {};
+    const models: Record<
+      string,
+      { requests: number; successCount: number; failureCount: number; tokens: number; cost: number }
+    > = {};
     let derivedSuccessCount = 0;
     let derivedFailureCount = 0;
     let totalCost = 0;
@@ -916,6 +919,7 @@ export function getApiStats(usageData: unknown, modelPrices: Record<string, Mode
 
       let successCount = 0;
       let failureCount = 0;
+      let cost = 0;
       if (hasExplicitCounts) {
         successCount += Number(modelData.success_count) || 0;
         failureCount += Number(modelData.failure_count) || 0;
@@ -934,10 +938,12 @@ export function getApiStats(usageData: unknown, modelPrices: Record<string, Mode
           }
 
           if (price && detailRecord) {
-            totalCost += calculateCost(
+            const detailCost = calculateCost(
               { ...(detailRecord as unknown as UsageDetail), __modelName: modelName },
               modelPrices
             );
+            cost += detailCost;
+            totalCost += detailCost;
           }
         });
       }
@@ -946,7 +952,8 @@ export function getApiStats(usageData: unknown, modelPrices: Record<string, Mode
         requests: Number(modelData.total_requests) || 0,
         successCount,
         failureCount,
-        tokens: Number(modelData.total_tokens) || 0
+        tokens: Number(modelData.total_tokens) || 0,
+        cost
       };
       derivedSuccessCount += successCount;
       derivedFailureCount += failureCount;

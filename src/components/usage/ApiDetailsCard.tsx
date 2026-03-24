@@ -140,6 +140,11 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                               </span>
                             </span>
                             <span className={styles.modelStat}>{formatCompactNumber(stats.tokens)}</span>
+                            {hasPrices && (
+                              <span className={styles.modelStat}>
+                                {stats.cost > 0 ? formatUsd(stats.cost) : '--'}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
