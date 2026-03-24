@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { Fragment, useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import {
@@ -37,12 +37,41 @@ interface CredentialRow {
   total: number;
   cost: number;
   successRate: number;
+  models: CredentialModelRow[];
+}
+
+interface CredentialModelRow {
+  model: string;
+  success: number;
+  failure: number;
+  total: number;
+  cost: number;
+  successRate: number;
+}
+
+interface CredentialModelBucket {
+  success: number;
+  failure: number;
+  cost: number;
+}
+
+interface InternalCredentialRow {
+  key: string;
+  displayName: string;
+  type: string;
+  success: number;
+  failure: number;
+  total: number;
+  cost: number;
+  successRate: number;
+  modelsMap: Record<string, CredentialModelBucket>;
 }
 
 interface CredentialBucket {
   success: number;
   failure: number;
   cost: number;
+  models: Record<string, CredentialModelBucket>;
 }
 
 export function CredentialStatsCard({
@@ -57,7 +86,20 @@ export function CredentialStatsCard({
 }: CredentialStatsCardProps) {
   const { t } = useTranslation();
   const [authFileMap, setAuthFileMap] = useState<Map<string, CredentialInfo>>(new Map());
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const hasPrices = Object.keys(modelPrices).length > 0;
+
+  const toggleExpand = (rowKey: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowKey)) {
+        next.delete(rowKey);
+      } else {
+        next.add(rowKey);
+      }
+      return next;
+    });
+  };
 
   // Fetch auth files for auth_index-based matching
   useEffect(() => {
@@ -91,39 +133,115 @@ export function CredentialStatsCard({
     if (!usage) return [];
     const details = collectUsageDetails(usage);
     const bySource: Record<string, CredentialBucket> = {};
-    const result: CredentialRow[] = [];
+    const result: InternalCredentialRow[] = [];
     const consumedSourceIds = new Set<string>();
     const authIndexToRowIndex = new Map<string, number>();
     const sourceToAuthIndex = new Map<string, string>();
     const sourceToAuthFile = new Map<string, CredentialInfo>();
     const fallbackByAuthIndex = new Map<string, CredentialBucket>();
-
-    details.forEach((detail) => {
-      const authIdx = normalizeAuthIndex(detail.auth_index);
-      const source = detail.source;
-      const isFailed = detail.failed === true;
-      const cost = calculateCost(detail, modelPrices);
-
-      if (!source) {
-        if (!authIdx) return;
-        const fallback = fallbackByAuthIndex.get(authIdx) ?? { success: 0, failure: 0, cost: 0 };
-        if (isFailed) {
-          fallback.failure += 1;
-        } else {
-          fallback.success += 1;
-        }
-        fallback.cost += cost;
-        fallbackByAuthIndex.set(authIdx, fallback);
-        return;
+    const createModelBucket = (): CredentialModelBucket => ({ success: 0, failure: 0, cost: 0 });
+    const createCredentialBucket = (): CredentialBucket => ({
+      success: 0,
+      failure: 0,
+      cost: 0,
+      models: {}
+    });
+    const normalizeModelName = (value: unknown) => {
+      const name = typeof value === 'string' ? value.trim() : '';
+      return name || '-';
+    };
+    const addModelBucket = (
+      target: Record<string, CredentialModelBucket>,
+      modelName: string,
+      isFailed: boolean,
+      cost: number
+    ) => {
+      const modelBucket = target[modelName] ?? createModelBucket();
+      if (isFailed) {
+        modelBucket.failure += 1;
+      } else {
+        modelBucket.success += 1;
       }
-
-      const bucket = bySource[source] ?? { success: 0, failure: 0, cost: 0 };
+      modelBucket.cost += cost;
+      target[modelName] = modelBucket;
+    };
+    const addDetailToBucket = (bucket: CredentialBucket, isFailed: boolean, cost: number, modelName: string) => {
       if (isFailed) {
         bucket.failure += 1;
       } else {
         bucket.success += 1;
       }
       bucket.cost += cost;
+      addModelBucket(bucket.models, modelName, isFailed, cost);
+    };
+    const mergeModelMaps = (
+      target: Record<string, CredentialModelBucket>,
+      source: Record<string, CredentialModelBucket>
+    ) => {
+      Object.entries(source).forEach(([modelName, modelBucket]) => {
+        const existing = target[modelName] ?? createModelBucket();
+        existing.success += modelBucket.success;
+        existing.failure += modelBucket.failure;
+        existing.cost += modelBucket.cost;
+        target[modelName] = existing;
+      });
+    };
+    const createRowFromBucket = (
+      key: string,
+      displayName: string,
+      type: string,
+      bucket: CredentialBucket
+    ): InternalCredentialRow => {
+      const total = bucket.success + bucket.failure;
+      return {
+        key,
+        displayName,
+        type,
+        success: bucket.success,
+        failure: bucket.failure,
+        total,
+        cost: bucket.cost,
+        successRate: total > 0 ? (bucket.success / total) * 100 : 100,
+        modelsMap: Object.fromEntries(
+          Object.entries(bucket.models).map(([modelName, modelBucket]) => [
+            modelName,
+            { ...modelBucket }
+          ])
+        )
+      };
+    };
+    const toModelRows = (modelsMap: Record<string, CredentialModelBucket>): CredentialModelRow[] =>
+      Object.entries(modelsMap)
+        .map(([model, bucket]) => {
+          const total = bucket.success + bucket.failure;
+          return {
+            model,
+            success: bucket.success,
+            failure: bucket.failure,
+            total,
+            cost: bucket.cost,
+            successRate: total > 0 ? (bucket.success / total) * 100 : 100
+          };
+        })
+        .sort((a, b) => b.total - a.total || b.cost - a.cost || a.model.localeCompare(b.model));
+
+    details.forEach((detail) => {
+      const authIdx = normalizeAuthIndex(detail.auth_index);
+      const source = detail.source;
+      const isFailed = detail.failed === true;
+      const cost = calculateCost(detail, modelPrices);
+      const modelName = normalizeModelName(detail.__modelName);
+
+      if (!source) {
+        if (!authIdx) return;
+        const fallback = fallbackByAuthIndex.get(authIdx) ?? createCredentialBucket();
+        addDetailToBucket(fallback, isFailed, cost, modelName);
+        fallbackByAuthIndex.set(authIdx, fallback);
+        return;
+      }
+
+      const bucket = bySource[source] ?? createCredentialBucket();
+      addDetailToBucket(bucket, isFailed, cost, modelName);
       bySource[source] = bucket;
 
       if (authIdx && !sourceToAuthIndex.has(source)) {
@@ -143,6 +261,7 @@ export function CredentialStatsCard({
       target.total = target.success + target.failure;
       target.cost += bucket.cost;
       target.successRate = target.total > 0 ? (target.success / target.total) * 100 : 100;
+      mergeModelMaps(target.modelsMap, bucket.models);
     };
 
     // Aggregate all candidate source IDs for one provider config into a single row
@@ -154,30 +273,20 @@ export function CredentialStatsCard({
       rowKey: string,
     ) => {
       const candidates = buildCandidateUsageSourceIds({ apiKey, prefix });
-      let success = 0;
-      let failure = 0;
-      let cost = 0;
+      const mergedBucket = createCredentialBucket();
       candidates.forEach((id) => {
         const bucket = bySource[id];
         if (bucket) {
-          success += bucket.success;
-          failure += bucket.failure;
-          cost += bucket.cost;
+          mergedBucket.success += bucket.success;
+          mergedBucket.failure += bucket.failure;
+          mergedBucket.cost += bucket.cost;
+          mergeModelMaps(mergedBucket.models, bucket.models);
           consumedSourceIds.add(id);
         }
       });
-      const total = success + failure;
+      const total = mergedBucket.success + mergedBucket.failure;
       if (total > 0) {
-        result.push({
-          key: rowKey,
-          displayName: name,
-          type,
-          success,
-          failure,
-          total,
-          cost,
-          successRate: (success / total) * 100,
-        });
+        result.push(createRowFromBucket(rowKey, name, type, mergedBucket));
       }
     };
 
@@ -201,49 +310,34 @@ export function CredentialStatsCard({
         buildCandidateUsageSourceIds({ apiKey: entry.apiKey }).forEach((id) => candidates.add(id));
       });
 
-      let success = 0;
-      let failure = 0;
-      let cost = 0;
+      const mergedBucket = createCredentialBucket();
       candidates.forEach((id) => {
         const bucket = bySource[id];
         if (bucket) {
-          success += bucket.success;
-          failure += bucket.failure;
-          cost += bucket.cost;
+          mergedBucket.success += bucket.success;
+          mergedBucket.failure += bucket.failure;
+          mergedBucket.cost += bucket.cost;
+          mergeModelMaps(mergedBucket.models, bucket.models);
           consumedSourceIds.add(id);
         }
       });
 
-      const total = success + failure;
+      const total = mergedBucket.success + mergedBucket.failure;
       if (total > 0) {
-        result.push({
-          key: `openai:${providerIndex}`,
-          displayName,
-          type: 'openai',
-          success,
-          failure,
-          total,
-          cost,
-          successRate: (success / total) * 100,
-        });
+        result.push(createRowFromBucket(`openai:${providerIndex}`, displayName, 'openai', mergedBucket));
       }
     });
 
     // Remaining unmatched bySource entries — resolve name from auth files if possible
     Object.entries(bySource).forEach(([key, bucket]) => {
       if (consumedSourceIds.has(key)) return;
-      const total = bucket.success + bucket.failure;
       const authFile = sourceToAuthFile.get(key);
-      const row = {
+      const row = createRowFromBucket(
         key,
-        displayName: authFile?.name || (key.startsWith('t:') ? key.slice(2) : key),
-        type: authFile?.type || '',
-        success: bucket.success,
-        failure: bucket.failure,
-        total,
-        cost: bucket.cost,
-        successRate: total > 0 ? (bucket.success / total) * 100 : 100,
-      };
+        authFile?.name || (key.startsWith('t:') ? key.slice(2) : key),
+        authFile?.type || '',
+        bucket
+      );
       const rowIndex = result.push(row) - 1;
       const authIdx = sourceToAuthIndex.get(key);
       if (authIdx && !authIndexToRowIndex.has(authIdx)) {
@@ -272,21 +366,25 @@ export function CredentialStatsCard({
         return;
       }
 
-      const total = bucket.success + bucket.failure;
-      const rowIndex = result.push({
-        key: `auth:${authIdx}`,
-        displayName: mapped?.name || authIdx,
-        type: mapped?.type || '',
-        success: bucket.success,
-        failure: bucket.failure,
-        total,
-        cost: bucket.cost,
-        successRate: (bucket.success / total) * 100
-      }) - 1;
+      const rowIndex = result.push(
+        createRowFromBucket(`auth:${authIdx}`, mapped?.name || authIdx, mapped?.type || '', bucket)
+      ) - 1;
       authIndexToRowIndex.set(authIdx, rowIndex);
     });
 
-    return result.sort((a, b) => b.total - a.total);
+    return result
+      .map((row) => ({
+        key: row.key,
+        displayName: row.displayName,
+        type: row.type,
+        success: row.success,
+        failure: row.failure,
+        total: row.total,
+        cost: row.cost,
+        successRate: row.successRate,
+        models: toModelRows(row.modelsMap)
+      }))
+      .sort((a, b) => b.total - a.total || b.cost - a.cost || a.displayName.localeCompare(b.displayName));
   }, [usage, modelPrices, geminiKeys, claudeConfigs, codexConfigs, vertexConfigs, openaiProviders, authFileMap]);
 
   return (
@@ -306,39 +404,105 @@ export function CredentialStatsCard({
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.key}>
-                  <td className={styles.modelCell}>
-                    <span>{row.displayName}</span>
-                    {row.type && (
-                      <span className={styles.credentialType}>{row.type}</span>
+              {rows.map((row) => {
+                const isExpanded = expandedRows.has(row.key);
+                const detailRowId = `credential-models-${row.key}`;
+
+                return (
+                  <Fragment key={row.key}>
+                    <tr>
+                      <td className={styles.modelCell}>
+                        <button
+                          type="button"
+                          className={styles.credentialToggleButton}
+                          onClick={() => toggleExpand(row.key)}
+                          aria-expanded={isExpanded}
+                          aria-controls={detailRowId}
+                        >
+                          <span className={`${styles.credentialExpandIcon} ${isExpanded ? styles.credentialExpandIconExpanded : ''}`}>
+                            ▶
+                          </span>
+                          <span>{row.displayName}</span>
+                          {row.type && (
+                            <span className={styles.credentialType}>{row.type}</span>
+                          )}
+                        </button>
+                      </td>
+                      <td>
+                        <span className={styles.requestCountCell}>
+                          <span>{formatCompactNumber(row.total)}</span>
+                          <span className={styles.requestBreakdown}>
+                            (<span className={styles.statSuccess}>{row.success.toLocaleString()}</span>{' '}
+                            <span className={styles.statFailure}>{row.failure.toLocaleString()}</span>)
+                          </span>
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            row.successRate >= 95
+                              ? styles.statSuccess
+                              : row.successRate >= 80
+                                ? styles.statNeutral
+                                : styles.statFailure
+                          }
+                        >
+                          {row.successRate.toFixed(1)}%
+                        </span>
+                      </td>
+                      {hasPrices && <td>{row.cost > 0 ? formatUsd(row.cost) : '--'}</td>}
+                    </tr>
+                    {isExpanded && (
+                      <tr id={detailRowId}>
+                        <td colSpan={hasPrices ? 4 : 3} className={styles.credentialExpandDetail}>
+                          <div className={styles.credentialExpandTableWrapper}>
+                            <table className={styles.table}>
+                              <thead>
+                                <tr>
+                                  <th>{t('usage_stats.model_name')}</th>
+                                  <th>{t('usage_stats.requests_count')}</th>
+                                  <th>{t('usage_stats.success_rate')}</th>
+                                  {hasPrices && <th>{t('usage_stats.total_cost')}</th>}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {row.models.map((modelRow) => (
+                                  <tr key={`${row.key}:${modelRow.model}`}>
+                                    <td className={styles.credentialModelCell}>{modelRow.model}</td>
+                                    <td>
+                                      <span className={styles.requestCountCell}>
+                                        <span>{formatCompactNumber(modelRow.total)}</span>
+                                        <span className={styles.requestBreakdown}>
+                                          (<span className={styles.statSuccess}>{modelRow.success.toLocaleString()}</span>{' '}
+                                          <span className={styles.statFailure}>{modelRow.failure.toLocaleString()}</span>)
+                                        </span>
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span
+                                        className={
+                                          modelRow.successRate >= 95
+                                            ? styles.statSuccess
+                                            : modelRow.successRate >= 80
+                                              ? styles.statNeutral
+                                              : styles.statFailure
+                                        }
+                                      >
+                                        {modelRow.successRate.toFixed(1)}%
+                                      </span>
+                                    </td>
+                                    {hasPrices && <td>{modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--'}</td>}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                  <td>
-                    <span className={styles.requestCountCell}>
-                      <span>{formatCompactNumber(row.total)}</span>
-                      <span className={styles.requestBreakdown}>
-                        (<span className={styles.statSuccess}>{row.success.toLocaleString()}</span>{' '}
-                        <span className={styles.statFailure}>{row.failure.toLocaleString()}</span>)
-                      </span>
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={
-                        row.successRate >= 95
-                          ? styles.statSuccess
-                          : row.successRate >= 80
-                            ? styles.statNeutral
-                            : styles.statFailure
-                      }
-                    >
-                      {row.successRate.toFixed(1)}%
-                    </span>
-                  </td>
-                  {hasPrices && <td>{row.cost > 0 ? formatUsd(row.cost) : '--'}</td>}
-                </tr>
-              ))}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

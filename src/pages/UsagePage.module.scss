@@ -570,6 +570,37 @@
   word-break: break-all;
 }
 
+.credentialToggleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: $radius-sm;
+  }
+}
+
+.credentialExpandIcon {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  transition: transform 0.2s ease;
+}
+
+.credentialExpandIconExpanded {
+  transform: rotate(90deg);
+}
+
 .credentialType {
   display: inline-block;
   margin-left: 6px;
@@ -593,6 +624,38 @@
 .requestBreakdown {
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+.credentialExpandDetail {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+
+  @include mobile {
+    padding: 10px 12px;
+  }
+}
+
+.credentialExpandTableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -12px;
+  padding: 0 12px;
+
+  @include mobile {
+    margin: 0 -10px;
+    padding: 0 10px;
+  }
+
+  .table {
+    min-width: 520px;
+  }
+}
+
+.credentialModelCell {
+  padding-left: 20px !important;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 // Pricing Section (80%比例)
