@@ -2,9 +2,12 @@ import { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import {
+  calculateCost,
   collectUsageDetails,
   buildCandidateUsageSourceIds,
   formatCompactNumber,
+  formatUsd,
+  type ModelPrice,
   normalizeAuthIndex
 } from '@/utils/usage';
 import { authFilesApi } from '@/services/api/authFiles';
@@ -17,6 +20,7 @@ import styles from '@/pages/UsagePage.module.scss';
 export interface CredentialStatsCardProps {
   usage: UsagePayload | null;
   loading: boolean;
+  modelPrices: Record<string, ModelPrice>;
   geminiKeys: GeminiKeyConfig[];
   claudeConfigs: ProviderKeyConfig[];
   codexConfigs: ProviderKeyConfig[];
@@ -31,17 +35,20 @@ interface CredentialRow {
   success: number;
   failure: number;
   total: number;
+  cost: number;
   successRate: number;
 }
 
 interface CredentialBucket {
   success: number;
   failure: number;
+  cost: number;
 }
 
 export function CredentialStatsCard({
   usage,
   loading,
+  modelPrices,
   geminiKeys,
   claudeConfigs,
   codexConfigs,
@@ -50,6 +57,7 @@ export function CredentialStatsCard({
 }: CredentialStatsCardProps) {
   const { t } = useTranslation();
   const [authFileMap, setAuthFileMap] = useState<Map<string, CredentialInfo>>(new Map());
+  const hasPrices = Object.keys(modelPrices).length > 0;
 
   // Fetch auth files for auth_index-based matching
   useEffect(() => {
@@ -94,25 +102,28 @@ export function CredentialStatsCard({
       const authIdx = normalizeAuthIndex(detail.auth_index);
       const source = detail.source;
       const isFailed = detail.failed === true;
+      const cost = calculateCost(detail, modelPrices);
 
       if (!source) {
         if (!authIdx) return;
-        const fallback = fallbackByAuthIndex.get(authIdx) ?? { success: 0, failure: 0 };
+        const fallback = fallbackByAuthIndex.get(authIdx) ?? { success: 0, failure: 0, cost: 0 };
         if (isFailed) {
           fallback.failure += 1;
         } else {
           fallback.success += 1;
         }
+        fallback.cost += cost;
         fallbackByAuthIndex.set(authIdx, fallback);
         return;
       }
 
-      const bucket = bySource[source] ?? { success: 0, failure: 0 };
+      const bucket = bySource[source] ?? { success: 0, failure: 0, cost: 0 };
       if (isFailed) {
         bucket.failure += 1;
       } else {
         bucket.success += 1;
       }
+      bucket.cost += cost;
       bySource[source] = bucket;
 
       if (authIdx && !sourceToAuthIndex.has(source)) {
@@ -130,6 +141,7 @@ export function CredentialStatsCard({
       target.success += bucket.success;
       target.failure += bucket.failure;
       target.total = target.success + target.failure;
+      target.cost += bucket.cost;
       target.successRate = target.total > 0 ? (target.success / target.total) * 100 : 100;
     };
 
@@ -144,11 +156,13 @@ export function CredentialStatsCard({
       const candidates = buildCandidateUsageSourceIds({ apiKey, prefix });
       let success = 0;
       let failure = 0;
+      let cost = 0;
       candidates.forEach((id) => {
         const bucket = bySource[id];
         if (bucket) {
           success += bucket.success;
           failure += bucket.failure;
+          cost += bucket.cost;
           consumedSourceIds.add(id);
         }
       });
@@ -161,6 +175,7 @@ export function CredentialStatsCard({
           success,
           failure,
           total,
+          cost,
           successRate: (success / total) * 100,
         });
       }
@@ -188,11 +203,13 @@ export function CredentialStatsCard({
 
       let success = 0;
       let failure = 0;
+      let cost = 0;
       candidates.forEach((id) => {
         const bucket = bySource[id];
         if (bucket) {
           success += bucket.success;
           failure += bucket.failure;
+          cost += bucket.cost;
           consumedSourceIds.add(id);
         }
       });
@@ -206,6 +223,7 @@ export function CredentialStatsCard({
           success,
           failure,
           total,
+          cost,
           successRate: (success / total) * 100,
         });
       }
@@ -223,6 +241,7 @@ export function CredentialStatsCard({
         success: bucket.success,
         failure: bucket.failure,
         total,
+        cost: bucket.cost,
         successRate: total > 0 ? (bucket.success / total) * 100 : 100,
       };
       const rowIndex = result.push(row) - 1;
@@ -261,13 +280,14 @@ export function CredentialStatsCard({
         success: bucket.success,
         failure: bucket.failure,
         total,
+        cost: bucket.cost,
         successRate: (bucket.success / total) * 100
       }) - 1;
       authIndexToRowIndex.set(authIdx, rowIndex);
     });
 
     return result.sort((a, b) => b.total - a.total);
-  }, [usage, geminiKeys, claudeConfigs, codexConfigs, vertexConfigs, openaiProviders, authFileMap]);
+  }, [usage, modelPrices, geminiKeys, claudeConfigs, codexConfigs, vertexConfigs, openaiProviders, authFileMap]);
 
   return (
     <Card title={t('usage_stats.credential_stats')} className={styles.detailsFixedCard}>
@@ -282,6 +302,7 @@ export function CredentialStatsCard({
                 <th>{t('usage_stats.credential_name')}</th>
                 <th>{t('usage_stats.requests_count')}</th>
                 <th>{t('usage_stats.success_rate')}</th>
+                {hasPrices && <th>{t('usage_stats.total_cost')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -315,6 +336,7 @@ export function CredentialStatsCard({
                       {row.successRate.toFixed(1)}%
                     </span>
                   </td>
+                  {hasPrices && <td>{row.cost > 0 ? formatUsd(row.cost) : '--'}</td>}
                 </tr>
               ))}
             </tbody>
