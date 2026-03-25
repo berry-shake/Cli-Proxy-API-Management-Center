@@ -20,6 +20,7 @@ import styles from '@/pages/UsagePage.module.scss';
 
 const ALL_FILTER = '__all__';
 const MAX_RENDERED_EVENTS = 500;
+const MOBILE_PAGE_SIZE = 10;
 
 type RequestEventRow = {
   id: string;
@@ -78,6 +79,7 @@ export function RequestEventsDetailsCard({
   const [sourceFilter, setSourceFilter] = useState(ALL_FILTER);
   const [authIndexFilter, setAuthIndexFilter] = useState(ALL_FILTER);
   const [authFileMap, setAuthFileMap] = useState<Map<string, CredentialInfo>>(new Map());
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(MOBILE_PAGE_SIZE);
 
   useEffect(() => {
     let cancelled = false;
@@ -234,10 +236,22 @@ export function RequestEventsDetailsCard({
     [effectiveAuthIndexFilter, effectiveModelFilter, effectiveSourceFilter, rows]
   );
 
-  const renderedRows = useMemo(
+  const cappedRows = useMemo(
     () => filteredRows.slice(0, MAX_RENDERED_EVENTS),
     [filteredRows]
   );
+
+  useEffect(() => {
+    setMobileVisibleCount(MOBILE_PAGE_SIZE);
+  }, [effectiveAuthIndexFilter, effectiveModelFilter, effectiveSourceFilter, filteredRows.length, isMobile]);
+
+  const renderedRows = useMemo(
+    () => (isMobile ? cappedRows.slice(0, mobileVisibleCount) : cappedRows),
+    [cappedRows, isMobile, mobileVisibleCount]
+  );
+
+  const mobileRemainingCount = Math.max(cappedRows.length - renderedRows.length, 0);
+  const canLoadMoreMobile = isMobile && mobileRemainingCount > 0;
 
   const hasActiveFilters =
     effectiveModelFilter !== ALL_FILTER ||
@@ -436,61 +450,76 @@ export function RequestEventsDetailsCard({
           </div>
 
           {isMobile ? (
-            <div className={styles.requestEventsCardList}>
-              {renderedRows.map((row) => (
-                <article key={row.id} className={styles.requestEventsCard}>
-                  <div className={styles.requestEventsCardHeader}>
-                    <time
-                      dateTime={row.timestamp}
-                      className={styles.requestEventsCardTimestamp}
-                      title={row.timestamp}
-                    >
-                      {row.timestampLabel}
-                    </time>
-                    <span
-                      className={row.failed ? styles.requestEventsResultFailed : styles.requestEventsResultSuccess}
-                    >
-                      {row.failed ? t('stats.failure') : t('stats.success')}
-                    </span>
-                  </div>
-
-                  <div className={styles.requestEventsCardModel}>{row.model}</div>
-
-                  <div className={styles.requestEventsCardDetails}>
-                    <div className={styles.requestEventsCardDetailItem}>
-                      <span className={styles.requestEventsCardLabel}>
-                        {t('usage_stats.request_events_source')}
+            <>
+              <div className={styles.requestEventsCardList}>
+                {renderedRows.map((row) => (
+                  <article key={row.id} className={styles.requestEventsCard}>
+                    <div className={styles.requestEventsCardHeader}>
+                      <time
+                        dateTime={row.timestamp}
+                        className={styles.requestEventsCardTimestamp}
+                        title={row.timestamp}
+                      >
+                        {row.timestampLabel}
+                      </time>
+                      <span
+                        className={row.failed ? styles.requestEventsResultFailed : styles.requestEventsResultSuccess}
+                      >
+                        {row.failed ? t('stats.failure') : t('stats.success')}
                       </span>
-                      <div className={styles.requestEventsCardValueRow}>
-                        <span className={styles.requestEventsCardCode} title={row.source}>
-                          {row.source}
+                    </div>
+
+                    <div className={styles.requestEventsCardModel}>{row.model}</div>
+
+                    <div className={styles.requestEventsCardDetails}>
+                      <div className={styles.requestEventsCardDetailItem}>
+                        <span className={styles.requestEventsCardLabel}>
+                          {t('usage_stats.request_events_source')}
                         </span>
-                        {row.sourceType && (
-                          <span className={styles.credentialType}>{row.sourceType}</span>
-                        )}
+                        <div className={styles.requestEventsCardValueRow}>
+                          <span className={styles.requestEventsCardCode} title={row.source}>
+                            {row.source}
+                          </span>
+                          {row.sourceType && (
+                            <span className={styles.credentialType}>{row.sourceType}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={styles.requestEventsCardDetailItem}>
+                        <span className={styles.requestEventsCardLabel}>
+                          {t('usage_stats.request_events_auth_index')}
+                        </span>
+                        <span className={styles.requestEventsCardCode} title={row.authIndex}>
+                          {row.authIndex}
+                        </span>
                       </div>
                     </div>
 
-                    <div className={styles.requestEventsCardDetailItem}>
-                      <span className={styles.requestEventsCardLabel}>
-                        {t('usage_stats.request_events_auth_index')}
-                      </span>
-                      <span className={styles.requestEventsCardCode} title={row.authIndex}>
-                        {row.authIndex}
-                      </span>
+                    <div className={styles.requestEventsTokenGrid}>
+                      {renderTokenMetric(t('usage_stats.input_tokens'), row.inputTokens.toLocaleString())}
+                      {renderTokenMetric(t('usage_stats.output_tokens'), row.outputTokens.toLocaleString())}
+                      {renderTokenMetric(t('usage_stats.reasoning_tokens'), row.reasoningTokens.toLocaleString())}
+                      {renderTokenMetric(t('usage_stats.cached_tokens'), row.cachedTokens.toLocaleString())}
+                      {renderTokenMetric(t('usage_stats.total_tokens'), row.totalTokens.toLocaleString(), true)}
                     </div>
-                  </div>
+                  </article>
+                ))}
+              </div>
 
-                  <div className={styles.requestEventsTokenGrid}>
-                    {renderTokenMetric(t('usage_stats.input_tokens'), row.inputTokens.toLocaleString())}
-                    {renderTokenMetric(t('usage_stats.output_tokens'), row.outputTokens.toLocaleString())}
-                    {renderTokenMetric(t('usage_stats.reasoning_tokens'), row.reasoningTokens.toLocaleString())}
-                    {renderTokenMetric(t('usage_stats.cached_tokens'), row.cachedTokens.toLocaleString())}
-                    {renderTokenMetric(t('usage_stats.total_tokens'), row.totalTokens.toLocaleString(), true)}
-                  </div>
-                </article>
-              ))}
-            </div>
+              {canLoadMoreMobile && (
+                <div className={styles.requestEventsLoadMore}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onClick={() => setMobileVisibleCount((prev) => prev + MOBILE_PAGE_SIZE)}
+                  >
+                    {t('usage_stats.request_events_load_more')}
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <div className={styles.requestEventsTableWrapper}>
               <table className={styles.table}>
