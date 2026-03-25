@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode, useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import {
   calculateCost,
@@ -16,6 +17,8 @@ import type { AuthFileItem } from '@/types/authFile';
 import type { CredentialInfo } from '@/types/sourceInfo';
 import type { UsagePayload } from './hooks/useUsageData';
 import styles from '@/pages/UsagePage.module.scss';
+
+const MOBILE_PAGE_SIZE = 10;
 
 export interface CredentialStatsCardProps {
   usage: UsagePayload | null;
@@ -89,6 +92,7 @@ export function CredentialStatsCard({
   const { t } = useTranslation();
   const [authFileMap, setAuthFileMap] = useState<Map<string, CredentialInfo>>(new Map());
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(MOBILE_PAGE_SIZE);
   const hasPrices = Object.keys(modelPrices).length > 0;
   const cardClassName = [styles.detailsFixedCard, styles.credentialStatsCard].join(' ');
   const scrollClassName = [styles.detailsScroll, styles.credentialStatsScroll].join(' ');
@@ -391,6 +395,17 @@ export function CredentialStatsCard({
       .sort((a, b) => b.total - a.total || b.cost - a.cost || a.displayName.localeCompare(b.displayName));
   }, [usage, modelPrices, geminiKeys, claudeConfigs, codexConfigs, vertexConfigs, openaiProviders, authFileMap]);
 
+  useEffect(() => {
+    setMobileVisibleCount(MOBILE_PAGE_SIZE);
+  }, [isMobile, rows.length]);
+
+  const visibleRows = useMemo(
+    () => (isMobile ? rows.slice(0, mobileVisibleCount) : rows),
+    [isMobile, mobileVisibleCount, rows]
+  );
+
+  const canLoadMoreMobile = isMobile && visibleRows.length < rows.length;
+
   const getSuccessRateClassName = (successRate: number) => (
     successRate >= 95
       ? styles.statSuccess
@@ -445,83 +460,98 @@ export function CredentialStatsCard({
       ) : rows.length > 0 ? (
         <div className={scrollClassName}>
           {isMobile ? (
-            <div className={styles.credentialMobileList}>
-              {rows.map((row) => {
-                const isExpanded = expandedRows.has(row.key);
-                const detailRowId = `credential-models-${row.key}`;
+            <>
+              <div className={styles.credentialMobileList}>
+                {visibleRows.map((row) => {
+                  const isExpanded = expandedRows.has(row.key);
+                  const detailRowId = `credential-models-${row.key}`;
 
-                return (
-                  <section key={row.key} className={styles.credentialMobileCard}>
-                    <button
-                      type="button"
-                      className={styles.credentialMobileHeader}
-                      onClick={() => toggleExpand(row.key)}
-                      aria-expanded={isExpanded}
-                      aria-controls={detailRowId}
-                    >
-                      <div className={styles.credentialMobileHeaderContent}>
-                        <div className={styles.credentialMobileNameRow}>
-                          <span className={styles.credentialMobileName}>{row.displayName}</span>
-                          {row.type && <span className={styles.credentialType}>{row.type}</span>}
-                        </div>
-                      </div>
-                      <span
-                        className={[
-                          styles.credentialExpandIcon,
-                          styles.credentialMobileExpandIcon,
-                          isExpanded ? styles.credentialExpandIconExpanded : ''
-                        ].filter(Boolean).join(' ')}
+                  return (
+                    <section key={row.key} className={styles.credentialMobileCard}>
+                      <button
+                        type="button"
+                        className={styles.credentialMobileHeader}
+                        onClick={() => toggleExpand(row.key)}
+                        aria-expanded={isExpanded}
+                        aria-controls={detailRowId}
                       >
-                        ▶
-                      </span>
-                    </button>
-
-                    <div className={styles.credentialMobileStats}>
-                      {renderMobileMetric(
-                        t('usage_stats.requests_count'),
-                        renderRequestCount(row.total, row.success, row.failure, true)
-                      )}
-                      {renderMobileMetric(
-                        t('usage_stats.success_rate'),
-                        <span className={getSuccessRateClassName(row.successRate)}>
-                          {row.successRate.toFixed(1)}%
-                        </span>,
-                      )}
-                      {hasPrices && renderMobileMetric(
-                        t('usage_stats.total_cost'),
-                        row.cost > 0 ? formatUsd(row.cost) : '--'
-                      )}
-                    </div>
-
-                    {isExpanded && (
-                      <div id={detailRowId} className={styles.credentialMobileModels}>
-                        {row.models.map((modelRow) => (
-                          <div key={`${row.key}:${modelRow.model}`} className={styles.credentialMobileModelItem}>
-                            <div className={styles.credentialMobileModelName}>{modelRow.model}</div>
-                            <div className={styles.credentialMobileModelStats}>
-                              {renderMobileCompactMetric(
-                                t('usage_stats.requests_count'),
-                                renderRequestCount(modelRow.total, modelRow.success, modelRow.failure, true)
-                              )}
-                              {renderMobileCompactMetric(
-                                t('usage_stats.success_rate'),
-                                <span className={getSuccessRateClassName(modelRow.successRate)}>
-                                  {modelRow.successRate.toFixed(1)}%
-                                </span>,
-                              )}
-                              {hasPrices && renderMobileCompactMetric(
-                                t('usage_stats.total_cost'),
-                                modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--'
-                              )}
-                            </div>
+                        <div className={styles.credentialMobileHeaderContent}>
+                          <div className={styles.credentialMobileNameRow}>
+                            <span className={styles.credentialMobileName}>{row.displayName}</span>
+                            {row.type && <span className={styles.credentialType}>{row.type}</span>}
                           </div>
-                        ))}
+                        </div>
+                        <span
+                          className={[
+                            styles.credentialExpandIcon,
+                            styles.credentialMobileExpandIcon,
+                            isExpanded ? styles.credentialExpandIconExpanded : ''
+                          ].filter(Boolean).join(' ')}
+                        >
+                          ▶
+                        </span>
+                      </button>
+
+                      <div className={styles.credentialMobileStats}>
+                        {renderMobileMetric(
+                          t('usage_stats.requests_count'),
+                          renderRequestCount(row.total, row.success, row.failure, true)
+                        )}
+                        {renderMobileMetric(
+                          t('usage_stats.success_rate'),
+                          <span className={getSuccessRateClassName(row.successRate)}>
+                            {row.successRate.toFixed(1)}%
+                          </span>,
+                        )}
+                        {hasPrices && renderMobileMetric(
+                          t('usage_stats.total_cost'),
+                          row.cost > 0 ? formatUsd(row.cost) : '--'
+                        )}
                       </div>
-                    )}
-                  </section>
-                );
-              })}
-            </div>
+
+                      {isExpanded && (
+                        <div id={detailRowId} className={styles.credentialMobileModels}>
+                          {row.models.map((modelRow) => (
+                            <div key={`${row.key}:${modelRow.model}`} className={styles.credentialMobileModelItem}>
+                              <div className={styles.credentialMobileModelName}>{modelRow.model}</div>
+                              <div className={styles.credentialMobileModelStats}>
+                                {renderMobileCompactMetric(
+                                  t('usage_stats.requests_count'),
+                                  renderRequestCount(modelRow.total, modelRow.success, modelRow.failure, true)
+                                )}
+                                {renderMobileCompactMetric(
+                                  t('usage_stats.success_rate'),
+                                  <span className={getSuccessRateClassName(modelRow.successRate)}>
+                                    {modelRow.successRate.toFixed(1)}%
+                                  </span>,
+                                )}
+                                {hasPrices && renderMobileCompactMetric(
+                                  t('usage_stats.total_cost'),
+                                  modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--'
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+
+              {canLoadMoreMobile && (
+                <div className={styles.credentialLoadMore}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onClick={() => setMobileVisibleCount((prev) => prev + MOBILE_PAGE_SIZE)}
+                  >
+                    {t('usage_stats.credential_stats_load_more')}
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
