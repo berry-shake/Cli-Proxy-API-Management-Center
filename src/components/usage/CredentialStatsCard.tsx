@@ -505,7 +505,8 @@ export function CredentialStatsCard({
                         )}
                         {hasPrices && renderMobileMetric(
                           t('usage_stats.total_cost'),
-                          row.cost > 0 ? formatUsd(row.cost) : '--'
+                          row.cost > 0 ? formatUsd(row.cost) : '--',
+                          true
                         )}
                       </div>
 
@@ -513,7 +514,9 @@ export function CredentialStatsCard({
                         <div id={detailRowId} className={styles.credentialMobileModels}>
                           {row.models.map((modelRow) => (
                             <div key={`${row.key}:${modelRow.model}`} className={styles.credentialMobileModelItem}>
-                              <div className={styles.credentialMobileModelName}>{modelRow.model}</div>
+                              <div className={styles.credentialMobileModelHeader}>
+                                <div className={styles.credentialMobileModelName}>{modelRow.model}</div>
+                              </div>
                               <div className={styles.credentialMobileModelStats}>
                                 {renderMobileCompactMetric(
                                   t('usage_stats.requests_count'),
@@ -527,7 +530,8 @@ export function CredentialStatsCard({
                                 )}
                                 {hasPrices && renderMobileCompactMetric(
                                   t('usage_stats.total_cost'),
-                                  modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--'
+                                  modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--',
+                                  true
                                 )}
                               </div>
                             </div>
