@@ -1109,6 +1109,11 @@
   align-items: center;
   gap: $spacing-xs;
   flex-wrap: wrap;
+
+  @include mobile {
+    width: 100%;
+    gap: 8px;
+  }
 }
 
 .requestEventsToolbar {
@@ -1117,6 +1122,12 @@
   flex-wrap: wrap;
   align-items: flex-end;
   margin-bottom: $spacing-sm;
+
+  @include mobile {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 .requestEventsFilterItem {
@@ -1124,6 +1135,10 @@
   flex-direction: column;
   gap: 4px;
   min-width: 180px;
+
+  @include mobile {
+    min-width: 0;
+  }
 }
 
 .requestEventsFilterLabel {
@@ -1134,6 +1149,10 @@
 
 .requestEventsSelect {
   min-width: 180px;
+
+  @include mobile {
+    min-width: 0;
+  }
 }
 
 .requestEventsMeta {
@@ -1156,6 +1175,118 @@
   max-height: 460px;
   border: 1px solid var(--border-color);
   border-radius: $radius-md;
+}
+
+.requestEventsActionButton {
+  @include mobile {
+    flex: 1 1 calc(50% - 4px);
+  }
+}
+
+.requestEventsCardList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.requestEventsCard {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.requestEventsCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.requestEventsCardTimestamp {
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.requestEventsCardModel {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.requestEventsCardDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.requestEventsCardDetailItem {
+  min-width: 0;
+}
+
+.requestEventsCardLabel {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.requestEventsCardValueRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.requestEventsCardCode {
+  min-width: 0;
+  color: var(--text-primary);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.requestEventsTokenGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.requestEventsTokenMetric {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-md;
+  background: var(--bg-primary);
+}
+
+.requestEventsTokenMetricWide {
+  grid-column: 1 / -1;
+}
+
+.requestEventsTokenLabel {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.requestEventsTokenValue {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .requestEventsTimestamp {

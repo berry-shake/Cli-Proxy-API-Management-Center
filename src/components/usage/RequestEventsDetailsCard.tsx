@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Select } from '@/components/ui/Select';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { authFilesApi } from '@/services/api/authFiles';
 import type { GeminiKeyConfig, ProviderKeyConfig, OpenAIProviderConfig } from '@/types';
 import type { AuthFileItem } from '@/types/authFile';
@@ -71,6 +72,7 @@ export function RequestEventsDetailsCard({
   openaiProviders
 }: RequestEventsDetailsCardProps) {
   const { t, i18n } = useTranslation();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const [modelFilter, setModelFilter] = useState(ALL_FILTER);
   const [sourceFilter, setSourceFilter] = useState(ALL_FILTER);
@@ -318,6 +320,18 @@ export function RequestEventsDetailsCard({
     });
   };
 
+  const renderTokenMetric = (label: string, value: ReactNode, wide = false) => (
+    <div
+      className={[
+        styles.requestEventsTokenMetric,
+        wide ? styles.requestEventsTokenMetricWide : ''
+      ].filter(Boolean).join(' ')}
+    >
+      <span className={styles.requestEventsTokenLabel}>{label}</span>
+      <span className={styles.requestEventsTokenValue}>{value}</span>
+    </div>
+  );
+
   return (
     <Card
       title={t('usage_stats.request_events_title')}
@@ -328,6 +342,7 @@ export function RequestEventsDetailsCard({
             size="sm"
             onClick={handleClearFilters}
             disabled={!hasActiveFilters}
+            className={styles.requestEventsActionButton}
           >
             {t('usage_stats.clear_filters')}
           </Button>
@@ -336,6 +351,7 @@ export function RequestEventsDetailsCard({
             size="sm"
             onClick={handleExportCsv}
             disabled={filteredRows.length === 0}
+            className={styles.requestEventsActionButton}
           >
             {t('usage_stats.export_csv')}
           </Button>
@@ -344,6 +360,7 @@ export function RequestEventsDetailsCard({
             size="sm"
             onClick={handleExportJson}
             disabled={filteredRows.length === 0}
+            className={styles.requestEventsActionButton}
           >
             {t('usage_stats.export_json')}
           </Button>
@@ -418,55 +435,113 @@ export function RequestEventsDetailsCard({
             )}
           </div>
 
-          <div className={styles.requestEventsTableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>{t('usage_stats.request_events_timestamp')}</th>
-                  <th>{t('usage_stats.model_name')}</th>
-                  <th>{t('usage_stats.request_events_source')}</th>
-                  <th>{t('usage_stats.request_events_auth_index')}</th>
-                  <th>{t('usage_stats.request_events_result')}</th>
-                  <th>{t('usage_stats.input_tokens')}</th>
-                  <th>{t('usage_stats.output_tokens')}</th>
-                  <th>{t('usage_stats.reasoning_tokens')}</th>
-                  <th>{t('usage_stats.cached_tokens')}</th>
-                  <th>{t('usage_stats.total_tokens')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {renderedRows.map((row) => (
-                  <tr key={row.id}>
-                    <td title={row.timestamp} className={styles.requestEventsTimestamp}>
+          {isMobile ? (
+            <div className={styles.requestEventsCardList}>
+              {renderedRows.map((row) => (
+                <article key={row.id} className={styles.requestEventsCard}>
+                  <div className={styles.requestEventsCardHeader}>
+                    <time
+                      dateTime={row.timestamp}
+                      className={styles.requestEventsCardTimestamp}
+                      title={row.timestamp}
+                    >
                       {row.timestampLabel}
-                    </td>
-                    <td className={styles.modelCell}>{row.model}</td>
-                    <td className={styles.requestEventsSourceCell} title={row.source}>
-                      <span>{row.source}</span>
-                      {row.sourceType && (
-                        <span className={styles.credentialType}>{row.sourceType}</span>
-                      )}
-                    </td>
-                    <td className={styles.requestEventsAuthIndex} title={row.authIndex}>
-                      {row.authIndex}
-                    </td>
-                    <td>
-                      <span
-                        className={row.failed ? styles.requestEventsResultFailed : styles.requestEventsResultSuccess}
-                      >
-                        {row.failed ? t('stats.failure') : t('stats.success')}
+                    </time>
+                    <span
+                      className={row.failed ? styles.requestEventsResultFailed : styles.requestEventsResultSuccess}
+                    >
+                      {row.failed ? t('stats.failure') : t('stats.success')}
+                    </span>
+                  </div>
+
+                  <div className={styles.requestEventsCardModel}>{row.model}</div>
+
+                  <div className={styles.requestEventsCardDetails}>
+                    <div className={styles.requestEventsCardDetailItem}>
+                      <span className={styles.requestEventsCardLabel}>
+                        {t('usage_stats.request_events_source')}
                       </span>
-                    </td>
-                    <td>{row.inputTokens.toLocaleString()}</td>
-                    <td>{row.outputTokens.toLocaleString()}</td>
-                    <td>{row.reasoningTokens.toLocaleString()}</td>
-                    <td>{row.cachedTokens.toLocaleString()}</td>
-                    <td>{row.totalTokens.toLocaleString()}</td>
+                      <div className={styles.requestEventsCardValueRow}>
+                        <span className={styles.requestEventsCardCode} title={row.source}>
+                          {row.source}
+                        </span>
+                        {row.sourceType && (
+                          <span className={styles.credentialType}>{row.sourceType}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className={styles.requestEventsCardDetailItem}>
+                      <span className={styles.requestEventsCardLabel}>
+                        {t('usage_stats.request_events_auth_index')}
+                      </span>
+                      <span className={styles.requestEventsCardCode} title={row.authIndex}>
+                        {row.authIndex}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.requestEventsTokenGrid}>
+                    {renderTokenMetric(t('usage_stats.input_tokens'), row.inputTokens.toLocaleString())}
+                    {renderTokenMetric(t('usage_stats.output_tokens'), row.outputTokens.toLocaleString())}
+                    {renderTokenMetric(t('usage_stats.reasoning_tokens'), row.reasoningTokens.toLocaleString())}
+                    {renderTokenMetric(t('usage_stats.cached_tokens'), row.cachedTokens.toLocaleString())}
+                    {renderTokenMetric(t('usage_stats.total_tokens'), row.totalTokens.toLocaleString(), true)}
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.requestEventsTableWrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>{t('usage_stats.request_events_timestamp')}</th>
+                    <th>{t('usage_stats.model_name')}</th>
+                    <th>{t('usage_stats.request_events_source')}</th>
+                    <th>{t('usage_stats.request_events_auth_index')}</th>
+                    <th>{t('usage_stats.request_events_result')}</th>
+                    <th>{t('usage_stats.input_tokens')}</th>
+                    <th>{t('usage_stats.output_tokens')}</th>
+                    <th>{t('usage_stats.reasoning_tokens')}</th>
+                    <th>{t('usage_stats.cached_tokens')}</th>
+                    <th>{t('usage_stats.total_tokens')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {renderedRows.map((row) => (
+                    <tr key={row.id}>
+                      <td title={row.timestamp} className={styles.requestEventsTimestamp}>
+                        {row.timestampLabel}
+                      </td>
+                      <td className={styles.modelCell}>{row.model}</td>
+                      <td className={styles.requestEventsSourceCell} title={row.source}>
+                        <span>{row.source}</span>
+                        {row.sourceType && (
+                          <span className={styles.credentialType}>{row.sourceType}</span>
+                        )}
+                      </td>
+                      <td className={styles.requestEventsAuthIndex} title={row.authIndex}>
+                        {row.authIndex}
+                      </td>
+                      <td>
+                        <span
+                          className={row.failed ? styles.requestEventsResultFailed : styles.requestEventsResultSuccess}
+                        >
+                          {row.failed ? t('stats.failure') : t('stats.success')}
+                        </span>
+                      </td>
+                      <td>{row.inputTokens.toLocaleString()}</td>
+                      <td>{row.outputTokens.toLocaleString()}</td>
+                      <td>{row.reasoningTokens.toLocaleString()}</td>
+                      <td>{row.cachedTokens.toLocaleString()}</td>
+                      <td>{row.totalTokens.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </Card>
