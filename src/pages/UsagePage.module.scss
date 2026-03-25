@@ -496,12 +496,25 @@
   }
 }
 
+.credentialStatsCard {
+  @include mobile {
+    height: auto;
+    overflow: visible;
+  }
+}
+
 .detailsScroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+}
+
+.credentialStatsScroll {
+  @include mobile {
+    overflow: visible;
+  }
 }
 
 // Table (80%比例)
@@ -621,6 +634,22 @@
   font-variant-numeric: tabular-nums;
 }
 
+.requestCountCellStacked {
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+
+  @media (max-width: 420px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+
+    .requestBreakdown {
+      white-space: normal;
+    }
+  }
+}
+
 .requestBreakdown {
   color: var(--text-secondary);
   white-space: nowrap;
@@ -656,6 +685,159 @@
   padding-left: 20px !important;
   font-weight: 500;
   color: var(--text-secondary);
+}
+
+.credentialMobileList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.credentialMobileCard {
+  padding: 10px;
+  border-radius: $radius-lg;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.credentialMobileHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.credentialMobileHeaderContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.credentialMobileNameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.credentialMobileName {
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.credentialMobileExpandIcon {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.credentialMobileStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+
+  @media (max-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.credentialMobileMetric {
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: $radius-md;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.credentialMobileMetricWide {
+  grid-column: 1 / -1;
+}
+
+.credentialMobileMetricLabel {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.credentialMobileMetricValue {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.credentialMobileModels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.credentialMobileModelItem {
+  padding: 8px 10px;
+  border-radius: $radius-md;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.credentialMobileModelName {
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.credentialMobileModelStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 8px;
+
+  @media (max-width: 560px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.credentialMobileCompactMetric {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.credentialMobileCompactMetricWide {
+  grid-column: 1 / -1;
+}
+
+.credentialMobileCompactMetricLabel {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.credentialMobileCompactMetricValue {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 // Pricing Section (80%比例)

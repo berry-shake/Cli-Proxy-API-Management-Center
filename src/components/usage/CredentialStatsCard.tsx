@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, useEffect } from 'react';
+import { Fragment, type ReactNode, useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import {
@@ -20,6 +20,7 @@ import styles from '@/pages/UsagePage.module.scss';
 export interface CredentialStatsCardProps {
   usage: UsagePayload | null;
   loading: boolean;
+  isMobile: boolean;
   modelPrices: Record<string, ModelPrice>;
   geminiKeys: GeminiKeyConfig[];
   claudeConfigs: ProviderKeyConfig[];
@@ -77,6 +78,7 @@ interface CredentialBucket {
 export function CredentialStatsCard({
   usage,
   loading,
+  isMobile,
   modelPrices,
   geminiKeys,
   claudeConfigs,
@@ -88,6 +90,8 @@ export function CredentialStatsCard({
   const [authFileMap, setAuthFileMap] = useState<Map<string, CredentialInfo>>(new Map());
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const hasPrices = Object.keys(modelPrices).length > 0;
+  const cardClassName = [styles.detailsFixedCard, styles.credentialStatsCard].join(' ');
+  const scrollClassName = [styles.detailsScroll, styles.credentialStatsScroll].join(' ');
 
   const toggleExpand = (rowKey: string) => {
     setExpandedRows((prev) => {
@@ -387,125 +391,220 @@ export function CredentialStatsCard({
       .sort((a, b) => b.total - a.total || b.cost - a.cost || a.displayName.localeCompare(b.displayName));
   }, [usage, modelPrices, geminiKeys, claudeConfigs, codexConfigs, vertexConfigs, openaiProviders, authFileMap]);
 
+  const getSuccessRateClassName = (successRate: number) => (
+    successRate >= 95
+      ? styles.statSuccess
+      : successRate >= 80
+        ? styles.statNeutral
+        : styles.statFailure
+  );
+
+  const renderRequestCount = (total: number, success: number, failure: number, stacked = false) => (
+    <span
+      className={[
+        styles.requestCountCell,
+        stacked ? styles.requestCountCellStacked : ''
+      ].filter(Boolean).join(' ')}
+    >
+      <span>{formatCompactNumber(total)}</span>
+      <span className={styles.requestBreakdown}>
+        (<span className={styles.statSuccess}>{success.toLocaleString()}</span>{' '}
+        <span className={styles.statFailure}>{failure.toLocaleString()}</span>)
+      </span>
+    </span>
+  );
+
+  const renderMobileMetric = (label: string, value: ReactNode, wide = false) => (
+    <div
+      className={[
+        styles.credentialMobileMetric,
+        wide ? styles.credentialMobileMetricWide : ''
+      ].filter(Boolean).join(' ')}
+    >
+      <span className={styles.credentialMobileMetricLabel}>{label}</span>
+      <div className={styles.credentialMobileMetricValue}>{value}</div>
+    </div>
+  );
+
+  const renderMobileCompactMetric = (label: string, value: ReactNode, wide = false) => (
+    <div
+      className={[
+        styles.credentialMobileCompactMetric,
+        wide ? styles.credentialMobileCompactMetricWide : ''
+      ].filter(Boolean).join(' ')}
+    >
+      <span className={styles.credentialMobileCompactMetricLabel}>{label}</span>
+      <div className={styles.credentialMobileCompactMetricValue}>{value}</div>
+    </div>
+  );
+
   return (
-    <Card title={t('usage_stats.credential_stats')} className={styles.detailsFixedCard}>
+    <Card title={t('usage_stats.credential_stats')} className={cardClassName}>
       {loading ? (
         <div className={styles.hint}>{t('common.loading')}</div>
       ) : rows.length > 0 ? (
-        <div className={styles.detailsScroll}>
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>{t('usage_stats.credential_name')}</th>
-                <th>{t('usage_stats.requests_count')}</th>
-                <th>{t('usage_stats.success_rate')}</th>
-                {hasPrices && <th>{t('usage_stats.total_cost')}</th>}
-              </tr>
-            </thead>
-            <tbody>
+        <div className={scrollClassName}>
+          {isMobile ? (
+            <div className={styles.credentialMobileList}>
               {rows.map((row) => {
                 const isExpanded = expandedRows.has(row.key);
                 const detailRowId = `credential-models-${row.key}`;
 
                 return (
-                  <Fragment key={row.key}>
-                    <tr>
-                      <td className={styles.modelCell}>
-                        <button
-                          type="button"
-                          className={styles.credentialToggleButton}
-                          onClick={() => toggleExpand(row.key)}
-                          aria-expanded={isExpanded}
-                          aria-controls={detailRowId}
-                        >
-                          <span className={`${styles.credentialExpandIcon} ${isExpanded ? styles.credentialExpandIconExpanded : ''}`}>
-                            ▶
-                          </span>
-                          <span>{row.displayName}</span>
-                          {row.type && (
-                            <span className={styles.credentialType}>{row.type}</span>
-                          )}
-                        </button>
-                      </td>
-                      <td>
-                        <span className={styles.requestCountCell}>
-                          <span>{formatCompactNumber(row.total)}</span>
-                          <span className={styles.requestBreakdown}>
-                            (<span className={styles.statSuccess}>{row.success.toLocaleString()}</span>{' '}
-                            <span className={styles.statFailure}>{row.failure.toLocaleString()}</span>)
-                          </span>
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={
-                            row.successRate >= 95
-                              ? styles.statSuccess
-                              : row.successRate >= 80
-                                ? styles.statNeutral
-                                : styles.statFailure
-                          }
-                        >
+                  <section key={row.key} className={styles.credentialMobileCard}>
+                    <button
+                      type="button"
+                      className={styles.credentialMobileHeader}
+                      onClick={() => toggleExpand(row.key)}
+                      aria-expanded={isExpanded}
+                      aria-controls={detailRowId}
+                    >
+                      <div className={styles.credentialMobileHeaderContent}>
+                        <div className={styles.credentialMobileNameRow}>
+                          <span className={styles.credentialMobileName}>{row.displayName}</span>
+                          {row.type && <span className={styles.credentialType}>{row.type}</span>}
+                        </div>
+                      </div>
+                      <span
+                        className={[
+                          styles.credentialExpandIcon,
+                          styles.credentialMobileExpandIcon,
+                          isExpanded ? styles.credentialExpandIconExpanded : ''
+                        ].filter(Boolean).join(' ')}
+                      >
+                        ▶
+                      </span>
+                    </button>
+
+                    <div className={styles.credentialMobileStats}>
+                      {renderMobileMetric(
+                        t('usage_stats.requests_count'),
+                        renderRequestCount(row.total, row.success, row.failure, true)
+                      )}
+                      {renderMobileMetric(
+                        t('usage_stats.success_rate'),
+                        <span className={getSuccessRateClassName(row.successRate)}>
                           {row.successRate.toFixed(1)}%
-                        </span>
-                      </td>
-                      {hasPrices && <td>{row.cost > 0 ? formatUsd(row.cost) : '--'}</td>}
-                    </tr>
+                        </span>,
+                      )}
+                      {hasPrices && renderMobileMetric(
+                        t('usage_stats.total_cost'),
+                        row.cost > 0 ? formatUsd(row.cost) : '--'
+                      )}
+                    </div>
+
                     {isExpanded && (
-                      <tr id={detailRowId}>
-                        <td colSpan={hasPrices ? 4 : 3} className={styles.credentialExpandDetail}>
-                          <div className={styles.credentialExpandTableWrapper}>
-                            <table className={styles.table}>
-                              <thead>
-                                <tr>
-                                  <th>{t('usage_stats.model_name')}</th>
-                                  <th>{t('usage_stats.requests_count')}</th>
-                                  <th>{t('usage_stats.success_rate')}</th>
-                                  {hasPrices && <th>{t('usage_stats.total_cost')}</th>}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {row.models.map((modelRow) => (
-                                  <tr key={`${row.key}:${modelRow.model}`}>
-                                    <td className={styles.credentialModelCell}>{modelRow.model}</td>
-                                    <td>
-                                      <span className={styles.requestCountCell}>
-                                        <span>{formatCompactNumber(modelRow.total)}</span>
-                                        <span className={styles.requestBreakdown}>
-                                          (<span className={styles.statSuccess}>{modelRow.success.toLocaleString()}</span>{' '}
-                                          <span className={styles.statFailure}>{modelRow.failure.toLocaleString()}</span>)
-                                        </span>
-                                      </span>
-                                    </td>
-                                    <td>
-                                      <span
-                                        className={
-                                          modelRow.successRate >= 95
-                                            ? styles.statSuccess
-                                            : modelRow.successRate >= 80
-                                              ? styles.statNeutral
-                                              : styles.statFailure
-                                        }
-                                      >
-                                        {modelRow.successRate.toFixed(1)}%
-                                      </span>
-                                    </td>
-                                    {hasPrices && <td>{modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--'}</td>}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                      <div id={detailRowId} className={styles.credentialMobileModels}>
+                        {row.models.map((modelRow) => (
+                          <div key={`${row.key}:${modelRow.model}`} className={styles.credentialMobileModelItem}>
+                            <div className={styles.credentialMobileModelName}>{modelRow.model}</div>
+                            <div className={styles.credentialMobileModelStats}>
+                              {renderMobileCompactMetric(
+                                t('usage_stats.requests_count'),
+                                renderRequestCount(modelRow.total, modelRow.success, modelRow.failure, true)
+                              )}
+                              {renderMobileCompactMetric(
+                                t('usage_stats.success_rate'),
+                                <span className={getSuccessRateClassName(modelRow.successRate)}>
+                                  {modelRow.successRate.toFixed(1)}%
+                                </span>,
+                              )}
+                              {hasPrices && renderMobileCompactMetric(
+                                t('usage_stats.total_cost'),
+                                modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--'
+                              )}
+                            </div>
                           </div>
-                        </td>
-                      </tr>
+                        ))}
+                      </div>
                     )}
-                  </Fragment>
+                  </section>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          ) : (
+            <div className={styles.tableWrapper}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>{t('usage_stats.credential_name')}</th>
+                    <th>{t('usage_stats.requests_count')}</th>
+                    <th>{t('usage_stats.success_rate')}</th>
+                    {hasPrices && <th>{t('usage_stats.total_cost')}</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => {
+                    const isExpanded = expandedRows.has(row.key);
+                    const detailRowId = `credential-models-${row.key}`;
+
+                    return (
+                      <Fragment key={row.key}>
+                        <tr>
+                          <td className={styles.modelCell}>
+                            <button
+                              type="button"
+                              className={styles.credentialToggleButton}
+                              onClick={() => toggleExpand(row.key)}
+                              aria-expanded={isExpanded}
+                              aria-controls={detailRowId}
+                            >
+                              <span className={`${styles.credentialExpandIcon} ${isExpanded ? styles.credentialExpandIconExpanded : ''}`}>
+                                ▶
+                              </span>
+                              <span>{row.displayName}</span>
+                              {row.type && (
+                                <span className={styles.credentialType}>{row.type}</span>
+                              )}
+                            </button>
+                          </td>
+                          <td>{renderRequestCount(row.total, row.success, row.failure)}</td>
+                          <td>
+                            <span className={getSuccessRateClassName(row.successRate)}>
+                              {row.successRate.toFixed(1)}%
+                            </span>
+                          </td>
+                          {hasPrices && <td>{row.cost > 0 ? formatUsd(row.cost) : '--'}</td>}
+                        </tr>
+                        {isExpanded && (
+                          <tr id={detailRowId}>
+                            <td colSpan={hasPrices ? 4 : 3} className={styles.credentialExpandDetail}>
+                              <div className={styles.credentialExpandTableWrapper}>
+                                <table className={styles.table}>
+                                  <thead>
+                                    <tr>
+                                      <th>{t('usage_stats.model_name')}</th>
+                                      <th>{t('usage_stats.requests_count')}</th>
+                                      <th>{t('usage_stats.success_rate')}</th>
+                                      {hasPrices && <th>{t('usage_stats.total_cost')}</th>}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {row.models.map((modelRow) => (
+                                      <tr key={`${row.key}:${modelRow.model}`}>
+                                        <td className={styles.credentialModelCell}>{modelRow.model}</td>
+                                        <td>{renderRequestCount(modelRow.total, modelRow.success, modelRow.failure)}</td>
+                                        <td>
+                                          <span className={getSuccessRateClassName(modelRow.successRate)}>
+                                            {modelRow.successRate.toFixed(1)}%
+                                          </span>
+                                        </td>
+                                        {hasPrices && <td>{modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--'}</td>}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       ) : (
         <div className={styles.hint}>{t('usage_stats.no_data')}</div>

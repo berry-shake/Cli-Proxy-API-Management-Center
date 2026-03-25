@@ -377,6 +377,7 @@ export function UsagePage() {
       <CredentialStatsCard
         usage={filteredUsage}
         loading={loading}
+        isMobile={isMobile}
         modelPrices={modelPrices}
         geminiKeys={config?.geminiApiKeys || []}
         claudeConfigs={config?.claudeApiKeys || []}
