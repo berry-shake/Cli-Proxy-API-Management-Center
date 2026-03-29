@@ -35,6 +35,7 @@ interface LogEntry {
   id: string;
   timestamp: string;
   timestampMs: number;
+  latencyMs: number | null;
   apiKey: string;
   model: string;
   source: string;
@@ -63,6 +64,19 @@ interface PrecomputedStats {
 
 // 虚拟滚动行高
 const ROW_HEIGHT = 40;
+
+const parseLatencyMs = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return Math.round(value);
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim());
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return Math.round(parsed);
+    }
+  }
+  return null;
+};
 
 export function RequestLogs({ data, loading: parentLoading, providerMap, providerTypeMap, sourceInfoMap, authFileMap: propAuthFileMap, apiFilter }: RequestLogsProps) {
   const { t } = useTranslation();
@@ -270,6 +284,7 @@ export function RequestLogs({ data, loading: parentLoading, providerMap, provide
             id: `${idCounter++}`,
             timestamp: detail.timestamp,
             timestampMs,
+            latencyMs: parseLatencyMs(detail.latency_ms),
             apiKey,
             model: modelName,
             source,
@@ -394,6 +409,15 @@ export function RequestLogs({ data, loading: parentLoading, providerMap, provide
     return num.toLocaleString('zh-CN');
   };
 
+  // 将毫秒格式化为秒（固定 1 位小数）
+  const formatLatencySeconds = (latencyMs: number | null) => {
+    if (latencyMs === null) {
+      return '-';
+    }
+    const secondsText = (latencyMs / 1000).toFixed(1);
+    return `${secondsText} s`;
+  };
+
   // 获取预计算的统计数据
   const getStats = (entry: LogEntry): PrecomputedStats => {
     return precomputedStats.get(entry.id) || {
@@ -452,6 +476,7 @@ export function RequestLogs({ data, loading: parentLoading, providerMap, provide
           {stats.successRate}%
         </td>
         <td>{formatNumber(stats.totalCount)}</td>
+        <td>{formatLatencySeconds(entry.latencyMs)}</td>
         <td>{formatNumber(entry.inputTokens)}</td>
         <td>{formatNumber(entry.outputTokens)}</td>
         <td>{formatNumber(entry.totalTokens)}</td>
@@ -593,6 +618,7 @@ export function RequestLogs({ data, loading: parentLoading, providerMap, provide
                       <th>{t('monitor.logs.header_recent')}</th>
                       <th>{t('monitor.logs.header_rate')}</th>
                       <th>{t('monitor.logs.header_count')}</th>
+                      <th>{t('monitor.logs.header_latency')}</th>
                       <th>{t('monitor.logs.header_input')}</th>
                       <th>{t('monitor.logs.header_output')}</th>
                       <th>{t('monitor.logs.header_total')}</th>

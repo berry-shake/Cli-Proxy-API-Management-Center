@@ -532,13 +532,8 @@
 
 // 表格样式
 .tableWrapper {
-  overflow-x: auto;
-  max-height: 400px;
+  overflow: hidden;
   -webkit-overflow-scrolling: touch;
-
-  @include mobile {
-    max-height: 350px;
-  }
 }
 
 // 虚拟滚动容器
@@ -586,7 +581,7 @@
 // 虚拟滚动表格固定列宽
 .virtualTable {
   table-layout: fixed;
-  min-width: 1280px;
+  min-width: 1360px;
 
   th, td {
     overflow: hidden;
@@ -612,16 +607,18 @@
   th:nth-child(8), td:nth-child(8) { width: 70px; }
   // 请求数
   th:nth-child(9), td:nth-child(9) { width: 70px; }
+  // 耗时
+  th:nth-child(10), td:nth-child(10) { width: 80px; }
   // 输入
-  th:nth-child(10), td:nth-child(10) { width: 60px; }
-  // 输出
   th:nth-child(11), td:nth-child(11) { width: 60px; }
+  // 输出
+  th:nth-child(12), td:nth-child(12) { width: 60px; }
   // 总 Token
-  th:nth-child(12), td:nth-child(12) { width: 70px; }
+  th:nth-child(13), td:nth-child(13) { width: 70px; }
   // 时间
-  th:nth-child(13), td:nth-child(13) { width: 150px; }
+  th:nth-child(14), td:nth-child(14) { width: 150px; }
   // 操作
-  th:nth-child(14), td:nth-child(14) { width: 60px; }
+  th:nth-child(15), td:nth-child(15) { width: 60px; }
 }
 
 .table {
