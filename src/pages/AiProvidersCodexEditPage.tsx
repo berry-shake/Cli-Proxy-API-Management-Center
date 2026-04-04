@@ -21,7 +21,7 @@ import { entriesToModels, modelsToEntries } from '@/components/ui/modelInputList
 import { excludedModelsToText, parseExcludedModels } from '@/components/providers/utils';
 import type { ProviderFormState } from '@/components/providers';
 import type { ModelInfo } from '@/utils/models';
-import { calculateConfigApiKeyAuthIndex } from '@/utils/authIndex';
+import { useResolveAuthIndex } from '@/hooks/useResolveAuthIndex';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 import styles from './AiProvidersPage.module.scss';
 
@@ -316,6 +316,8 @@ export function AiProvidersCodexEditPage() {
     [setForm, showNotification, t]
   );
 
+  const resolveCurrentAuthIndex = useResolveAuthIndex('codex', configs, form, editIndex);
+
   const fetchCodexModelDiscovery = useCallback(async () => {
     const requestId = (modelDiscoveryRequestIdRef.current += 1);
     setModelDiscoveryFetching(true);
@@ -327,16 +329,7 @@ export function AiProvidersCodexEditPage() {
         (key) => key.toLowerCase() === 'authorization'
       );
       const apiKey = form.apiKey.trim() || undefined;
-      const authIndex = await calculateConfigApiKeyAuthIndex({
-        provider: 'codex',
-        configs,
-        current: {
-          apiKey: form.apiKey,
-          baseUrl: form.baseUrl,
-          proxyUrl: form.proxyUrl,
-        },
-        currentIndex: editIndex,
-      });
+      const authIndex = await resolveCurrentAuthIndex();
       const list = await modelsApi.fetchV1ModelsViaApiCall(
         form.baseUrl ?? '',
         hasCustomAuthorization ? undefined : apiKey,
@@ -355,7 +348,7 @@ export function AiProvidersCodexEditPage() {
         setModelDiscoveryFetching(false);
       }
     }
-  }, [configs, editIndex, form.apiKey, form.baseUrl, form.headers, form.proxyUrl, t]);
+  }, [form.apiKey, form.baseUrl, form.headers, resolveCurrentAuthIndex, t]);
 
   useEffect(() => {
     if (!modelDiscoveryOpen) {

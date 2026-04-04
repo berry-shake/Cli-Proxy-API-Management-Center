@@ -75,15 +75,16 @@ const buildSource = async (
   const meta = CONFIG_API_KEY_PROVIDER_META[provider];
   const seenTokenCounts = new Map<string, number>();
 
-  for (let index = 0; index < configs.length; index += 1) {
+  // Only iterate up to targetIndex — entries after it don't affect the token.
+  for (let index = 0; index <= targetIndex; index += 1) {
     const item = configs[index];
     const tokenSeed = [meta.kind, item.apiKey, item.baseUrl].join('\0');
     const tokenBase = toHex(await sha256Bytes(tokenSeed)).slice(0, 12);
     const duplicateCount = seenTokenCounts.get(tokenBase) ?? 0;
     seenTokenCounts.set(tokenBase, duplicateCount + 1);
-    const token = duplicateCount === 0 ? tokenBase : `${tokenBase}-${duplicateCount}`;
 
     if (index === targetIndex) {
+      const token = duplicateCount === 0 ? tokenBase : `${tokenBase}-${duplicateCount}`;
       return `${meta.sourcePrefix}[${token}]`;
     }
   }
@@ -108,6 +109,9 @@ export async function calculateConfigApiKeyAuthIndex(params: {
     const target = materialized.configs[materialized.targetIndex];
     const source = await buildSource(provider, materialized.configs, materialized.targetIndex);
 
+    // Seed format must stay aligned with the backend auth_index calculation.
+    // Fields are joined with \0 (null byte) to avoid collisions from values
+    // that contain the delimiter characters (e.g. '=' or '|').
     const seedParts = [`provider=${meta.provider}`];
     if (target.baseUrl) seedParts.push(`base=${target.baseUrl}`);
     if (target.proxyUrl) seedParts.push(`proxy=${target.proxyUrl}`);

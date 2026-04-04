@@ -13,7 +13,7 @@ import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } f
 import { excludedModelsToText, parseExcludedModels } from '@/components/providers/utils';
 import { modelsToEntries } from '@/components/ui/modelInputListUtils';
 import type { ClaudeEditBaseline } from '@/stores/useClaudeEditDraftStore';
-import { calculateConfigApiKeyAuthIndex } from '@/utils/authIndex';
+import { useResolveAuthIndex } from '@/hooks/useResolveAuthIndex';
 
 type LocationState = { fromAiProviders?: boolean } | null;
 
@@ -201,20 +201,7 @@ export function AiProvidersClaudeEditLayout() {
     [form.modelEntries]
   );
 
-  const resolveCurrentAuthIndex = useCallback(
-    () =>
-      calculateConfigApiKeyAuthIndex({
-        provider: 'claude',
-        configs,
-        current: {
-          apiKey: form.apiKey,
-          baseUrl: form.baseUrl,
-          proxyUrl: form.proxyUrl,
-        },
-        currentIndex: editIndex,
-      }),
-    [configs, editIndex, form.apiKey, form.baseUrl, form.proxyUrl]
-  );
+  const resolveCurrentAuthIndex = useResolveAuthIndex('claude', configs, form, editIndex);
 
   useEffect(() => {
     acquireDraft(draftKey);
