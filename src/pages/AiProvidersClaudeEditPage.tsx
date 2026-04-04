@@ -61,6 +61,7 @@ export function AiProvidersClaudeEditPage() {
     testMessage,
     setTestMessage,
     availableModels,
+    resolveCurrentAuthIndex,
     handleBack,
     handleSave,
   } = useOutletContext<ClaudeEditOutletContext>();
@@ -213,8 +214,10 @@ export function AiProvidersClaudeEditPage() {
     setTestMessage(t('ai_providers.claude_test_running'));
 
     try {
+      const authIndex = await resolveCurrentAuthIndex();
       const result = await apiCallApi.request(
         {
+          authIndex,
           method: 'POST',
           url: endpoint,
           header: headers,
@@ -262,6 +265,7 @@ export function AiProvidersClaudeEditPage() {
     showNotification,
     t,
     testModel,
+    resolveCurrentAuthIndex,
   ]);
 
   return (

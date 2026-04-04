@@ -28,6 +28,7 @@ export function AiProvidersClaudeModelsPage() {
     loading: initialLoading,
     saving,
     form,
+    resolveCurrentAuthIndex,
     mergeDiscoveredModels,
   } = useOutletContext<ClaudeEditOutletContext>();
 
@@ -63,10 +64,12 @@ export function AiProvidersClaudeModelsPage() {
     setError('');
     const headerObject = buildHeaderObject(form.headers);
     try {
+      const authIndex = await resolveCurrentAuthIndex();
       const list = await modelsApi.fetchClaudeModelsViaApiCall(
         form.baseUrl ?? '',
         form.apiKey.trim() || undefined,
-        headerObject
+        headerObject,
+        authIndex
       );
       setModels(list);
     } catch (err: unknown) {
@@ -89,7 +92,7 @@ export function AiProvidersClaudeModelsPage() {
     } finally {
       setFetching(false);
     }
-  }, [form.apiKey, form.baseUrl, form.headers, t]);
+  }, [form.apiKey, form.baseUrl, form.headers, resolveCurrentAuthIndex, t]);
 
   useEffect(() => {
     if (initialLoading) return;

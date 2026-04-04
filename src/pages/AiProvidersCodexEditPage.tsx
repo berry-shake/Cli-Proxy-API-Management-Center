@@ -21,6 +21,7 @@ import { entriesToModels, modelsToEntries } from '@/components/ui/modelInputList
 import { excludedModelsToText, parseExcludedModels } from '@/components/providers/utils';
 import type { ProviderFormState } from '@/components/providers';
 import type { ModelInfo } from '@/utils/models';
+import { calculateConfigApiKeyAuthIndex } from '@/utils/authIndex';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 import styles from './AiProvidersPage.module.scss';
 
@@ -326,10 +327,21 @@ export function AiProvidersCodexEditPage() {
         (key) => key.toLowerCase() === 'authorization'
       );
       const apiKey = form.apiKey.trim() || undefined;
+      const authIndex = await calculateConfigApiKeyAuthIndex({
+        provider: 'codex',
+        configs,
+        current: {
+          apiKey: form.apiKey,
+          baseUrl: form.baseUrl,
+          proxyUrl: form.proxyUrl,
+        },
+        currentIndex: editIndex,
+      });
       const list = await modelsApi.fetchV1ModelsViaApiCall(
         form.baseUrl ?? '',
         hasCustomAuthorization ? undefined : apiKey,
-        headerObject
+        headerObject,
+        authIndex
       );
       if (modelDiscoveryRequestIdRef.current !== requestId) return;
       setDiscoveredModels(list);
@@ -343,7 +355,7 @@ export function AiProvidersCodexEditPage() {
         setModelDiscoveryFetching(false);
       }
     }
-  }, [form.apiKey, form.baseUrl, form.headers, t]);
+  }, [configs, editIndex, form.apiKey, form.baseUrl, form.headers, form.proxyUrl, t]);
 
   useEffect(() => {
     if (!modelDiscoveryOpen) {

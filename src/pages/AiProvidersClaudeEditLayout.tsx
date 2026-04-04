@@ -13,6 +13,7 @@ import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } f
 import { excludedModelsToText, parseExcludedModels } from '@/components/providers/utils';
 import { modelsToEntries } from '@/components/ui/modelInputListUtils';
 import type { ClaudeEditBaseline } from '@/stores/useClaudeEditDraftStore';
+import { calculateConfigApiKeyAuthIndex } from '@/utils/authIndex';
 
 type LocationState = { fromAiProviders?: boolean } | null;
 
@@ -35,6 +36,7 @@ export type ClaudeEditOutletContext = {
   testMessage: string;
   setTestMessage: Dispatch<SetStateAction<string>>;
   availableModels: string[];
+  resolveCurrentAuthIndex: () => Promise<string | undefined>;
   handleBack: () => void;
   handleSave: () => Promise<void>;
   mergeDiscoveredModels: (selectedModels: ModelInfo[]) => void;
@@ -197,6 +199,21 @@ export function AiProvidersClaudeEditLayout() {
   const availableModels = useMemo(
     () => form.modelEntries.map((entry) => entry.name.trim()).filter(Boolean),
     [form.modelEntries]
+  );
+
+  const resolveCurrentAuthIndex = useCallback(
+    () =>
+      calculateConfigApiKeyAuthIndex({
+        provider: 'claude',
+        configs,
+        current: {
+          apiKey: form.apiKey,
+          baseUrl: form.baseUrl,
+          proxyUrl: form.proxyUrl,
+        },
+        currentIndex: editIndex,
+      }),
+    [configs, editIndex, form.apiKey, form.baseUrl, form.proxyUrl]
   );
 
   useEffect(() => {
@@ -481,6 +498,7 @@ export function AiProvidersClaudeEditLayout() {
         testMessage,
         setTestMessage,
         availableModels,
+        resolveCurrentAuthIndex,
         handleBack,
         handleSave,
         mergeDiscoveredModels,
