@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
-import type { ProviderKeyConfig } from '@/types';
 import { calculateConfigApiKeyAuthIndex } from '@/utils/authIndex';
+import type { ConfigApiKeyProvider } from '@/utils/authIndex';
 
-type ConfigApiKeyProvider = 'claude' | 'codex';
+type AuthFields = { apiKey: string; baseUrl?: string; proxyUrl?: string };
 
 export function useResolveAuthIndex(
   provider: ConfigApiKeyProvider,
-  configs: ProviderKeyConfig[],
-  form: Pick<ProviderKeyConfig, 'apiKey' | 'baseUrl' | 'proxyUrl'>,
+  configs: AuthFields[],
+  form: AuthFields,
   editIndex: number | null
 ) {
   return useCallback(

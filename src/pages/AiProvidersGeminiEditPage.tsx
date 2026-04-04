@@ -17,6 +17,7 @@ import type { GeminiKeyConfig } from '@/types';
 import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
 import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/utils/compare';
 import type { ModelInfo } from '@/utils/models';
+import { useResolveAuthIndex } from '@/hooks/useResolveAuthIndex';
 import { entriesToModels, modelsToEntries } from '@/components/ui/modelInputListUtils';
 import { excludedModelsToText, parseExcludedModels } from '@/components/providers/utils';
 import type { GeminiFormState } from '@/components/providers';
@@ -260,16 +261,20 @@ export function AiProvidersGeminiEditPage() {
     [setForm, showNotification, t]
   );
 
+  const resolveCurrentAuthIndex = useResolveAuthIndex('gemini', configs, form, editIndex);
+
   const fetchGeminiModelDiscovery = useCallback(async () => {
     const requestId = (modelDiscoveryRequestIdRef.current += 1);
     setModelDiscoveryFetching(true);
     setModelDiscoveryError('');
     const headerObject = buildHeaderObject(form.headers);
     try {
+      const authIndex = await resolveCurrentAuthIndex();
       const list = await modelsApi.fetchGeminiModelsViaApiCall(
         form.baseUrl ?? '',
         form.apiKey.trim() || undefined,
-        headerObject
+        headerObject,
+        authIndex
       );
       if (modelDiscoveryRequestIdRef.current !== requestId) return;
       setDiscoveredModels(list);
@@ -295,7 +300,7 @@ export function AiProvidersGeminiEditPage() {
         setModelDiscoveryFetching(false);
       }
     }
-  }, [form.apiKey, form.baseUrl, form.headers, t]);
+  }, [form.apiKey, form.baseUrl, form.headers, resolveCurrentAuthIndex, t]);
 
   useEffect(() => {
     if (!modelDiscoveryOpen) {

@@ -1,6 +1,6 @@
 import type { ProviderKeyConfig } from '@/types';
 
-type ConfigApiKeyProvider = 'claude' | 'codex';
+export type ConfigApiKeyProvider = 'gemini' | 'claude' | 'codex';
 
 type ProviderAuthInput = Pick<ProviderKeyConfig, 'apiKey' | 'baseUrl' | 'proxyUrl'>;
 
@@ -11,6 +11,11 @@ type ProviderAuthMeta = {
 };
 
 const CONFIG_API_KEY_PROVIDER_META: Record<ConfigApiKeyProvider, ProviderAuthMeta> = {
+  gemini: {
+    kind: 'gemini:apikey',
+    provider: 'gemini',
+    sourcePrefix: 'config:gemini',
+  },
   claude: {
     kind: 'claude:apikey',
     provider: 'claude',
