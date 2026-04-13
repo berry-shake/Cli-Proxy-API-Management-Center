@@ -99,23 +99,27 @@ export function WebdavConnectionCard() {
             placeholder="https://dav.example.com"
             value={localConfig.serverUrl}
             onChange={(e) => handleChange('serverUrl', e.target.value)}
+            autoComplete="off"
           />
           <Input
             label={t('backup.base_path')}
             placeholder="/cpamc-backups/"
             value={localConfig.basePath}
             onChange={(e) => handleChange('basePath', e.target.value)}
+            autoComplete="off"
           />
           <Input
             label={t('backup.username')}
             value={localConfig.username}
             onChange={(e) => handleChange('username', e.target.value)}
+            autoComplete="one-time-code"
           />
           <Input
             label={t('backup.password')}
             type="password"
             value={localConfig.password}
             onChange={(e) => handleChange('password', e.target.value)}
+            autoComplete="new-password"
           />
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
