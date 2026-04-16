@@ -15,7 +15,6 @@ import iconGemini from '@/assets/icons/gemini.svg';
 import iconGithubCopilot from '@/assets/icons/github-copilot.svg';
 import iconKimiLight from '@/assets/icons/kimi-light.svg';
 import iconKimiDark from '@/assets/icons/kimi-dark.svg';
-import iconQwen from '@/assets/icons/qwen.svg';
 import iconIflow from '@/assets/icons/iflow.svg';
 import iconVertex from '@/assets/icons/vertex.svg';
 
@@ -80,8 +79,7 @@ const PROVIDERS: { id: OAuthProvider; titleKey: string; hintKey: string; urlLabe
   { id: 'antigravity', titleKey: 'auth_login.antigravity_oauth_title', hintKey: 'auth_login.antigravity_oauth_hint', urlLabelKey: 'auth_login.antigravity_oauth_url_label', icon: iconAntigravity },
   { id: 'gemini-cli', titleKey: 'auth_login.gemini_cli_oauth_title', hintKey: 'auth_login.gemini_cli_oauth_hint', urlLabelKey: 'auth_login.gemini_cli_oauth_url_label', icon: iconGemini },
   { id: 'github', titleKey: 'auth_login.github_oauth_title', hintKey: 'auth_login.github_oauth_hint', urlLabelKey: 'auth_login.github_oauth_url_label', icon: iconGithubCopilot },
-  { id: 'kimi', titleKey: 'auth_login.kimi_oauth_title', hintKey: 'auth_login.kimi_oauth_hint', urlLabelKey: 'auth_login.kimi_oauth_url_label', icon: { light: iconKimiLight, dark: iconKimiDark } },
-  { id: 'qwen', titleKey: 'auth_login.qwen_oauth_title', hintKey: 'auth_login.qwen_oauth_hint', urlLabelKey: 'auth_login.qwen_oauth_url_label', icon: iconQwen }
+  { id: 'kimi', titleKey: 'auth_login.kimi_oauth_title', hintKey: 'auth_login.kimi_oauth_hint', urlLabelKey: 'auth_login.kimi_oauth_url_label', icon: { light: iconKimiLight, dark: iconKimiDark } }
 ];
 
 const CALLBACK_SUPPORTED: OAuthProvider[] = ['codex', 'anthropic', 'antigravity', 'gemini-cli'];

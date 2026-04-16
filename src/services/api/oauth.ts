@@ -10,8 +10,7 @@ export type OAuthProvider =
   | 'antigravity'
   | 'gemini-cli'
   | 'github'
-  | 'kimi'
-  | 'qwen';
+  | 'kimi';
 
 export interface OAuthStartResponse {
   url: string;
