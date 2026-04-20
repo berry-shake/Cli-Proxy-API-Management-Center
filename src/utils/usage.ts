@@ -13,6 +13,7 @@ import {
   finalizeLatencyStats,
 } from './usage/latency';
 import { maskApiKey } from './format';
+import { parseTimestampMs } from './timestamp';
 
 export type { DurationFormatOptions, LatencyStats } from './usage/latency';
 export {
@@ -66,7 +67,7 @@ export interface ModelPriceSyncMeta {
 export interface UsageDetail {
   timestamp: string;
   source: string;
-  auth_index: number;
+  auth_index: string | number | null;
   latency_ms?: number;
   tokens: {
     input_tokens: number;
@@ -204,7 +205,7 @@ export function filterUsageByTimeRange<T>(
         if (!detailRecord || typeof detailRecord.timestamp !== 'string') {
           return;
         }
-        const timestamp = Date.parse(detailRecord.timestamp);
+        const timestamp = parseTimestampMs(detailRecord.timestamp);
         if (Number.isNaN(timestamp) || timestamp < windowStart || timestamp > nowMs) {
           return;
         }
@@ -560,13 +561,17 @@ export function collectUsageDetails(usageData: unknown): UsageDetail[] {
       modelDetails.forEach((detailRaw) => {
         if (!isRecord(detailRaw) || typeof detailRaw.timestamp !== 'string') return;
         const timestamp = detailRaw.timestamp;
-        const timestampMs = Date.parse(timestamp);
+        const timestampMs = parseTimestampMs(timestamp);
         const tokensRaw = isRecord(detailRaw.tokens) ? detailRaw.tokens : {};
         const latencyMs = extractLatencyMs(detailRaw);
         details.push({
           timestamp,
           source: normalizeSource(detailRaw.source),
-          auth_index: detailRaw.auth_index as unknown as number,
+          auth_index:
+            (detailRaw?.auth_index ??
+              detailRaw?.authIndex ??
+              detailRaw?.AuthIndex ??
+              null) as UsageDetail['auth_index'],
           latency_ms: latencyMs ?? undefined,
           tokens: tokensRaw as unknown as UsageDetail['tokens'],
           failed: detailRaw.failed === true,
@@ -633,13 +638,17 @@ export function collectUsageDetailsWithEndpoint(usageData: unknown): UsageDetail
       modelDetails.forEach((detailRaw) => {
         if (!isRecord(detailRaw) || typeof detailRaw.timestamp !== 'string') return;
         const timestamp = detailRaw.timestamp;
-        const timestampMs = Date.parse(timestamp);
+        const timestampMs = parseTimestampMs(timestamp);
         const tokensRaw = isRecord(detailRaw.tokens) ? detailRaw.tokens : {};
         const latencyMs = extractLatencyMs(detailRaw);
         details.push({
           timestamp,
           source: normalizeSource(detailRaw.source),
-          auth_index: detailRaw.auth_index as unknown as number,
+          auth_index:
+            (detailRaw?.auth_index ??
+              detailRaw?.authIndex ??
+              detailRaw?.AuthIndex ??
+              null) as UsageDetail['auth_index'],
           latency_ms: latencyMs ?? undefined,
           tokens: tokensRaw as unknown as UsageDetail['tokens'],
           failed: detailRaw.failed === true,
@@ -736,7 +745,7 @@ export function calculateRecentPerMinuteRates(
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (!Number.isFinite(timestamp) || timestamp < windowStart || timestamp > now) {
       return;
     }
@@ -1229,7 +1238,7 @@ export function buildHourlySeriesByModel(
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (!Number.isFinite(timestamp) || timestamp <= 0) {
       return;
     }
@@ -1288,7 +1297,7 @@ export function buildDailySeriesByModel(
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (!Number.isFinite(timestamp) || timestamp <= 0) {
       return;
     }
@@ -1491,7 +1500,7 @@ export interface StatusBarData {
 export function calculateStatusBarData(
   usageDetails: UsageDetail[],
   sourceFilter?: string,
-  authIndexFilter?: number
+  authIndexFilter?: string | number
 ): StatusBarData {
   const BLOCK_COUNT = 20;
   const BLOCK_DURATION_MS = 10 * 60 * 1000; // 10 minutes
@@ -1514,7 +1523,7 @@ export function calculateStatusBarData(
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (
       !Number.isFinite(timestamp) ||
       timestamp <= 0 ||
@@ -1622,7 +1631,7 @@ export function calculateServiceHealthData(usageDetails: UsageDetail[]): Service
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (
       !Number.isFinite(timestamp) ||
       timestamp <= 0 ||
@@ -1832,7 +1841,7 @@ export function buildHourlyTokenBreakdown(
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (!Number.isFinite(timestamp) || timestamp <= 0) return;
     const normalized = new Date(timestamp);
     normalized.setMinutes(0, 0, 0);
@@ -1874,7 +1883,7 @@ export function buildDailyTokenBreakdown(usageData: unknown): TokenBreakdownSeri
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (!Number.isFinite(timestamp) || timestamp <= 0) return;
     const dayLabel = formatDayLabel(new Date(timestamp));
     if (!dayLabel) return;
@@ -1951,7 +1960,7 @@ export function buildHourlyCostSeries(
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (!Number.isFinite(timestamp) || timestamp <= 0) return;
     const normalized = new Date(timestamp);
     normalized.setMinutes(0, 0, 0);
@@ -1986,7 +1995,7 @@ export function buildDailyCostSeries(
     const timestamp =
       typeof detail.__timestampMs === 'number'
         ? detail.__timestampMs
-        : Date.parse(detail.timestamp);
+        : parseTimestampMs(detail.timestamp);
     if (!Number.isFinite(timestamp) || timestamp <= 0) return;
     const dayLabel = formatDayLabel(new Date(timestamp));
     if (!dayLabel) return;
