@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { formatCompactNumber, formatUsd, type ApiStats } from '@/utils/usage';
 import styles from '@/pages/UsagePage.module.scss';
 
@@ -13,11 +15,15 @@ export interface ApiDetailsCardProps {
 type ApiSortKey = 'endpoint' | 'requests' | 'tokens' | 'cost';
 type SortDir = 'asc' | 'desc';
 
+const MOBILE_PAGE_SIZE = 5;
+
 export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardProps) {
   const { t } = useTranslation();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [expandedApis, setExpandedApis] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<ApiSortKey>('requests');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(MOBILE_PAGE_SIZE);
 
   const toggleExpand = (endpoint: string) => {
     setExpandedApis((prev) => {
@@ -55,11 +61,38 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
     return list;
   }, [apiStats, sortKey, sortDir]);
 
+  useEffect(() => {
+    setMobileVisibleCount(MOBILE_PAGE_SIZE);
+  }, [isMobile, sorted.length]);
+
+  const visibleSorted = useMemo(
+    () => (isMobile ? sorted.slice(0, mobileVisibleCount) : sorted),
+    [isMobile, mobileVisibleCount, sorted]
+  );
+
+  const canLoadMoreMobile = isMobile && visibleSorted.length < sorted.length;
+
   const arrow = (key: ApiSortKey) =>
     sortKey === key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
 
+  const renderMobileStat = (label: string, value: ReactNode, valueClassName?: string) => (
+    <div className={styles.credentialMobileStat}>
+      <div
+        className={[styles.credentialMobileStatValue, valueClassName]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {value}
+      </div>
+      <div className={styles.credentialMobileStatLabel}>{label}</div>
+    </div>
+  );
+
   return (
-    <Card title={t('usage_stats.api_details')} className={styles.detailsFixedCard}>
+    <Card
+      title={t('usage_stats.api_details')}
+      className={[styles.detailsFixedCard, styles.apiDetailsCard].join(' ')}
+    >
       {loading ? (
         <div className={styles.hint}>{t('common.loading')}</div>
       ) : sorted.length > 0 ? (
@@ -82,78 +115,196 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
               </button>
             ))}
           </div>
-          <div className={styles.detailsScroll}>
-            <div className={styles.apiList}>
-              {sorted.map((api, index) => {
-                const isExpanded = expandedApis.has(api.endpoint);
-                const panelId = `api-models-${index}`;
 
-                return (
-                  <div key={api.endpoint} className={styles.apiItem}>
-                    <button
-                      type="button"
-                      className={styles.apiHeader}
-                      onClick={() => toggleExpand(api.endpoint)}
-                      aria-expanded={isExpanded}
-                      aria-controls={panelId}
-                    >
-                      <div className={styles.apiInfo}>
-                        <span className={styles.apiEndpoint}>{api.endpoint}</span>
-                        <div className={styles.apiStats}>
-                          <span className={styles.apiBadge}>
-                            <span className={styles.requestCountCell}>
-                              <span>
-                                {t('usage_stats.requests_count')}: {api.totalRequests.toLocaleString()}
-                              </span>
-                              <span className={styles.requestBreakdown}>
-                                (<span className={styles.statSuccess}>{api.successCount.toLocaleString()}</span>{' '}
-                                <span className={styles.statFailure}>{api.failureCount.toLocaleString()}</span>)
-                              </span>
-                            </span>
-                          </span>
-                          <span className={styles.apiBadge}>
-                            {t('usage_stats.tokens_count')}: {formatCompactNumber(api.totalTokens)}
-                          </span>
-                          {hasPrices && api.totalCost > 0 && (
-                            <span className={styles.apiBadge}>
-                              {t('usage_stats.total_cost')}: {formatUsd(api.totalCost)}
-                            </span>
-                          )}
+          {isMobile ? (
+            <>
+              <div className={styles.credentialMobileList}>
+                {visibleSorted.map((api) => {
+                  const isExpanded = expandedApis.has(api.endpoint);
+                  const panelId = `api-models-${api.endpoint}`;
+                  const modelEntries = Object.entries(api.models);
+
+                  return (
+                    <section key={api.endpoint} className={styles.credentialMobileCard}>
+                      <button
+                        type="button"
+                        className={styles.credentialMobileHeader}
+                        onClick={() => toggleExpand(api.endpoint)}
+                        aria-expanded={isExpanded}
+                        aria-controls={panelId}
+                      >
+                        <div className={styles.credentialMobileHeaderContent}>
+                          <div className={styles.credentialMobileNameRow}>
+                            <span className={styles.credentialMobileName}>{api.endpoint}</span>
+                          </div>
                         </div>
+                        <span
+                          className={[
+                            styles.credentialExpandIcon,
+                            styles.credentialMobileExpandIcon,
+                            isExpanded ? styles.credentialExpandIconExpanded : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        >
+                          ▶
+                        </span>
+                      </button>
+
+                      <div className={styles.credentialMobileSummary}>
+                        {renderMobileStat(
+                          t('usage_stats.requests_count'),
+                          formatCompactNumber(api.totalRequests)
+                        )}
+                        {renderMobileStat(
+                          t('usage_stats.tokens_count'),
+                          formatCompactNumber(api.totalTokens)
+                        )}
+                        {hasPrices &&
+                          renderMobileStat(
+                            t('usage_stats.total_cost'),
+                            api.totalCost > 0 ? formatUsd(api.totalCost) : '--'
+                          )}
                       </div>
-                      <span className={styles.expandIcon}>
-                        {isExpanded ? '▼' : '▶'}
-                      </span>
-                    </button>
-                    {isExpanded && (
-                      <div id={panelId} className={styles.apiModels}>
-                        {Object.entries(api.models).map(([model, stats]) => (
-                          <div key={model} className={styles.modelRow}>
-                            <span className={styles.modelName}>{model}</span>
-                            <span className={styles.modelStat}>
+
+                      <div className={styles.credentialMobileBreakdown}>
+                        <span className={styles.statSuccess}>
+                          ✓ {api.successCount.toLocaleString()}
+                        </span>
+                        <span className={styles.statFailure}>
+                          ✗ {api.failureCount.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {isExpanded && modelEntries.length > 0 && (
+                        <div id={panelId} className={styles.credentialMobileModels}>
+                          {modelEntries.map(([model, stats]) => (
+                            <div
+                              key={`${api.endpoint}:${model}`}
+                              className={styles.credentialMobileModelItem}
+                            >
+                              <div className={styles.credentialMobileModelHeader}>
+                                <div className={styles.credentialMobileModelName}>{model}</div>
+                              </div>
+                              <div className={styles.credentialMobileSummaryCompact}>
+                                {renderMobileStat(
+                                  t('usage_stats.requests_count'),
+                                  formatCompactNumber(stats.requests)
+                                )}
+                                {renderMobileStat(
+                                  t('usage_stats.tokens_count'),
+                                  formatCompactNumber(stats.tokens)
+                                )}
+                                {hasPrices &&
+                                  renderMobileStat(
+                                    t('usage_stats.total_cost'),
+                                    stats.cost > 0 ? formatUsd(stats.cost) : '--'
+                                  )}
+                              </div>
+                              <div className={styles.credentialMobileBreakdown}>
+                                <span className={styles.statSuccess}>
+                                  ✓ {stats.successCount.toLocaleString()}
+                                </span>
+                                <span className={styles.statFailure}>
+                                  ✗ {stats.failureCount.toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+
+              {canLoadMoreMobile && (
+                <div className={styles.credentialLoadMore}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    fullWidth
+                    onClick={() => setMobileVisibleCount((prev) => prev + MOBILE_PAGE_SIZE)}
+                  >
+                    {t('usage_stats.credential_stats_load_more')}
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className={styles.detailsScroll}>
+              <div className={styles.apiList}>
+                {sorted.map((api, index) => {
+                  const isExpanded = expandedApis.has(api.endpoint);
+                  const panelId = `api-models-${index}`;
+
+                  return (
+                    <div key={api.endpoint} className={styles.apiItem}>
+                      <button
+                        type="button"
+                        className={styles.apiHeader}
+                        onClick={() => toggleExpand(api.endpoint)}
+                        aria-expanded={isExpanded}
+                        aria-controls={panelId}
+                      >
+                        <div className={styles.apiInfo}>
+                          <span className={styles.apiEndpoint}>{api.endpoint}</span>
+                          <div className={styles.apiStats}>
+                            <span className={styles.apiBadge}>
                               <span className={styles.requestCountCell}>
-                                <span>{stats.requests.toLocaleString()}</span>
+                                <span>
+                                  {t('usage_stats.requests_count')}: {api.totalRequests.toLocaleString()}
+                                </span>
                                 <span className={styles.requestBreakdown}>
-                                  (<span className={styles.statSuccess}>{stats.successCount.toLocaleString()}</span>{' '}
-                                  <span className={styles.statFailure}>{stats.failureCount.toLocaleString()}</span>)
+                                  (<span className={styles.statSuccess}>{api.successCount.toLocaleString()}</span>{' '}
+                                  <span className={styles.statFailure}>{api.failureCount.toLocaleString()}</span>)
                                 </span>
                               </span>
                             </span>
-                            <span className={styles.modelStat}>{formatCompactNumber(stats.tokens)}</span>
-                            {hasPrices && (
-                              <span className={styles.modelStat}>
-                                {stats.cost > 0 ? formatUsd(stats.cost) : '--'}
+                            <span className={styles.apiBadge}>
+                              {t('usage_stats.tokens_count')}: {formatCompactNumber(api.totalTokens)}
+                            </span>
+                            {hasPrices && api.totalCost > 0 && (
+                              <span className={styles.apiBadge}>
+                                {t('usage_stats.total_cost')}: {formatUsd(api.totalCost)}
                               </span>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                        </div>
+                        <span className={styles.expandIcon}>
+                          {isExpanded ? '▼' : '▶'}
+                        </span>
+                      </button>
+                      {isExpanded && (
+                        <div id={panelId} className={styles.apiModels}>
+                          {Object.entries(api.models).map(([model, stats]) => (
+                            <div key={model} className={styles.modelRow}>
+                              <span className={styles.modelName}>{model}</span>
+                              <span className={styles.modelStat}>
+                                <span className={styles.requestCountCell}>
+                                  <span>{stats.requests.toLocaleString()}</span>
+                                  <span className={styles.requestBreakdown}>
+                                    (<span className={styles.statSuccess}>{stats.successCount.toLocaleString()}</span>{' '}
+                                    <span className={styles.statFailure}>{stats.failureCount.toLocaleString()}</span>)
+                                  </span>
+                                </span>
+                              </span>
+                              <span className={styles.modelStat}>{formatCompactNumber(stats.tokens)}</span>
+                              {hasPrices && (
+                                <span className={styles.modelStat}>
+                                  {stats.cost > 0 ? formatUsd(stats.cost) : '--'}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </>
       ) : (
         <div className={styles.hint}>{t('usage_stats.no_data')}</div>

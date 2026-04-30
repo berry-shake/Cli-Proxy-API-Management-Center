@@ -503,7 +503,8 @@
 }
 
 .credentialStatsCard,
-.modelStatsCard {
+.modelStatsCard,
+.apiDetailsCard {
   @include mobile {
     height: auto;
     overflow: visible;
