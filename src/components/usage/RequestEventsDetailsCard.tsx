@@ -25,7 +25,7 @@ import styles from '@/pages/UsagePage.module.scss';
 
 const ALL_FILTER = '__all__';
 const MAX_RENDERED_EVENTS = 500;
-const MOBILE_PAGE_SIZE = 10;
+const MOBILE_PAGE_SIZE = 5;
 
 type RequestEventRow = {
   id: string;

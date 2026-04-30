@@ -18,7 +18,7 @@ import type { CredentialInfo } from '@/types/sourceInfo';
 import type { UsagePayload } from './hooks/useUsageData';
 import styles from '@/pages/UsagePage.module.scss';
 
-const MOBILE_PAGE_SIZE = 10;
+const MOBILE_PAGE_SIZE = 5;
 
 export interface CredentialStatsCardProps {
   usage: UsagePayload | null;
