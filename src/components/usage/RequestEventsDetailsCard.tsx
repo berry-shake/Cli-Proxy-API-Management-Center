@@ -560,7 +560,11 @@ export function RequestEventsDetailsCard({
           {isMobile ? (
             <>
               <div className={styles.requestEventsCardList}>
-                {renderedRows.map((row) => (
+                {renderedRows.map((row) => {
+                  const showLatency = hasLatencyData && row.latencyMs !== null;
+                  const narrowMetricCount = 4 + (showLatency ? 1 : 0);
+                  const totalIsWide = narrowMetricCount % 2 === 0;
+                  return (
                   <article key={row.id} className={styles.requestEventsCard}>
                     <div className={styles.requestEventsCardHeader}>
                       <time
@@ -641,15 +645,16 @@ export function RequestEventsDetailsCard({
                     </div>
 
                     <div className={styles.requestEventsTokenGrid}>
-                      {hasLatencyData && row.latencyMs !== null && renderTokenMetric(t('usage_stats.time'), formatDurationMs(row.latencyMs))}
+                      {showLatency && renderTokenMetric(t('usage_stats.time'), formatDurationMs(row.latencyMs))}
                       {renderTokenMetric(t('usage_stats.input_tokens'), row.inputTokens.toLocaleString())}
                       {renderTokenMetric(t('usage_stats.output_tokens'), row.outputTokens.toLocaleString())}
                       {renderTokenMetric(t('usage_stats.reasoning_tokens'), row.reasoningTokens.toLocaleString())}
                       {renderTokenMetric(t('usage_stats.cached_tokens'), row.cachedTokens.toLocaleString())}
-                      {renderTokenMetric(t('usage_stats.total_tokens'), row.totalTokens.toLocaleString(), true)}
+                      {renderTokenMetric(t('usage_stats.total_tokens'), row.totalTokens.toLocaleString(), totalIsWide)}
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
 
               {canLoadMoreMobile && (

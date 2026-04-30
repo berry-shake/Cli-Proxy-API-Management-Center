@@ -429,27 +429,23 @@ export function CredentialStatsCard({
     </span>
   );
 
-  const renderMobileMetric = (label: string, value: ReactNode, wide = false) => (
-    <div
-      className={[
-        styles.credentialMobileMetric,
-        wide ? styles.credentialMobileMetricWide : ''
-      ].filter(Boolean).join(' ')}
-    >
-      <span className={styles.credentialMobileMetricLabel}>{label}</span>
-      <div className={styles.credentialMobileMetricValue}>{value}</div>
+  const renderMobileStat = (label: string, value: ReactNode, valueClassName?: string) => (
+    <div className={styles.credentialMobileStat}>
+      <div
+        className={[styles.credentialMobileStatValue, valueClassName]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {value}
+      </div>
+      <div className={styles.credentialMobileStatLabel}>{label}</div>
     </div>
   );
 
-  const renderMobileCompactMetric = (label: string, value: ReactNode, wide = false) => (
-    <div
-      className={[
-        styles.credentialMobileCompactMetric,
-        wide ? styles.credentialMobileCompactMetricWide : ''
-      ].filter(Boolean).join(' ')}
-    >
-      <span className={styles.credentialMobileCompactMetricLabel}>{label}</span>
-      <div className={styles.credentialMobileCompactMetricValue}>{value}</div>
+  const renderMobileBreakdown = (success: number, failure: number) => (
+    <div className={styles.credentialMobileBreakdown}>
+      <span className={styles.statSuccess}>✓ {success.toLocaleString()}</span>
+      <span className={styles.statFailure}>✗ {failure.toLocaleString()}</span>
     </div>
   );
 
@@ -492,23 +488,22 @@ export function CredentialStatsCard({
                         </span>
                       </button>
 
-                      <div className={styles.credentialMobileStats}>
-                        {renderMobileMetric(
+                      <div className={styles.credentialMobileSummary}>
+                        {renderMobileStat(
                           t('usage_stats.requests_count'),
-                          renderRequestCount(row.total, row.success, row.failure, true)
+                          formatCompactNumber(row.total)
                         )}
-                        {renderMobileMetric(
+                        {renderMobileStat(
                           t('usage_stats.success_rate'),
-                          <span className={getSuccessRateClassName(row.successRate)}>
-                            {row.successRate.toFixed(1)}%
-                          </span>,
+                          `${row.successRate.toFixed(1)}%`,
+                          getSuccessRateClassName(row.successRate)
                         )}
-                        {hasPrices && renderMobileMetric(
+                        {hasPrices && renderMobileStat(
                           t('usage_stats.total_cost'),
-                          row.cost > 0 ? formatUsd(row.cost) : '--',
-                          true
+                          row.cost > 0 ? formatUsd(row.cost) : '--'
                         )}
                       </div>
+                      {renderMobileBreakdown(row.success, row.failure)}
 
                       {isExpanded && (
                         <div id={detailRowId} className={styles.credentialMobileModels}>
@@ -517,23 +512,22 @@ export function CredentialStatsCard({
                               <div className={styles.credentialMobileModelHeader}>
                                 <div className={styles.credentialMobileModelName}>{modelRow.model}</div>
                               </div>
-                              <div className={styles.credentialMobileModelStats}>
-                                {renderMobileCompactMetric(
+                              <div className={styles.credentialMobileSummaryCompact}>
+                                {renderMobileStat(
                                   t('usage_stats.requests_count'),
-                                  renderRequestCount(modelRow.total, modelRow.success, modelRow.failure, true)
+                                  formatCompactNumber(modelRow.total)
                                 )}
-                                {renderMobileCompactMetric(
+                                {renderMobileStat(
                                   t('usage_stats.success_rate'),
-                                  <span className={getSuccessRateClassName(modelRow.successRate)}>
-                                    {modelRow.successRate.toFixed(1)}%
-                                  </span>,
+                                  `${modelRow.successRate.toFixed(1)}%`,
+                                  getSuccessRateClassName(modelRow.successRate)
                                 )}
-                                {hasPrices && renderMobileCompactMetric(
+                                {hasPrices && renderMobileStat(
                                   t('usage_stats.total_cost'),
-                                  modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--',
-                                  true
+                                  modelRow.cost > 0 ? formatUsd(modelRow.cost) : '--'
                                 )}
                               </div>
+                              {renderMobileBreakdown(modelRow.success, modelRow.failure)}
                             </div>
                           ))}
                         </div>
