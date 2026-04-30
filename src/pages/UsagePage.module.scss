@@ -975,9 +975,9 @@
   row-gap: 6px;
 
   @include mobile {
-    padding: 9px 10px;
+    padding: 12px 10px;
     column-gap: 6px;
-    row-gap: 8px;
+    row-gap: 12px;
     align-items: start;
   }
 }
@@ -1024,8 +1024,8 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: 1px;
-    padding: 5px 3px;
+    gap: 3px;
+    padding: 8px 4px;
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: $radius-sm;
