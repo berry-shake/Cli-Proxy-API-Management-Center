@@ -988,6 +988,7 @@
     "range_7h": "最近 7 小時",
     "range_24h": "最近 24 小時",
     "range_7d": "最近 7 天",
+    "range_30d": "最近 30 天",
     "filter_all": "全部",
     "clear_filters": "清空篩選",
     "refresh": "重新整理",

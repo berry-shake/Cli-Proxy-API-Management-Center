@@ -983,6 +983,7 @@
     "range_7h": "Last 7 Hours",
     "range_24h": "Last 24 Hours",
     "range_7d": "Last 7 Days",
+    "range_30d": "Last 30 Days",
     "filter_all": "All",
     "clear_filters": "Clear Filters",
     "refresh": "Refresh",

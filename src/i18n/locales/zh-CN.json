@@ -983,6 +983,7 @@
     "range_7h": "最近7小时",
     "range_24h": "最近24小时",
     "range_7d": "最近7天",
+    "range_30d": "最近30天",
     "filter_all": "全部",
     "clear_filters": "清空筛选",
     "refresh": "刷新",
