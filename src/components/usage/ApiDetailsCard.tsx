@@ -133,11 +133,6 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                         aria-expanded={isExpanded}
                         aria-controls={panelId}
                       >
-                        <div className={styles.credentialMobileHeaderContent}>
-                          <div className={styles.credentialMobileNameRow}>
-                            <span className={styles.credentialMobileName}>{api.endpoint}</span>
-                          </div>
-                        </div>
                         <span
                           className={[
                             styles.credentialExpandIcon,
@@ -149,6 +144,11 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                         >
                           ▶
                         </span>
+                        <div className={styles.credentialMobileHeaderContent}>
+                          <div className={styles.credentialMobileNameRow}>
+                            <span className={styles.credentialMobileName}>{api.endpoint}</span>
+                          </div>
+                        </div>
                       </button>
 
                       <div className={styles.credentialMobileSummary}>
@@ -247,6 +247,16 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                         aria-expanded={isExpanded}
                         aria-controls={panelId}
                       >
+                        <span
+                          className={[
+                            styles.credentialExpandIcon,
+                            isExpanded ? styles.credentialExpandIconExpanded : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        >
+                          ▶
+                        </span>
                         <div className={styles.apiInfo}>
                           <span className={styles.apiEndpoint}>{api.endpoint}</span>
                           <div className={styles.apiStats}>
@@ -271,9 +281,6 @@ export function ApiDetailsCard({ apiStats, loading, hasPrices }: ApiDetailsCardP
                             )}
                           </div>
                         </div>
-                        <span className={styles.expandIcon}>
-                          {isExpanded ? '▼' : '▶'}
-                        </span>
                       </button>
                       {isExpanded && (
                         <div id={panelId} className={styles.apiModels}>

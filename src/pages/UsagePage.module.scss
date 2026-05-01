@@ -391,8 +391,8 @@
 .apiHeader {
   width: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 10px;
   border: 0;
   background: transparent;
@@ -595,7 +595,9 @@
 .modelCell {
   font-weight: 500;
   max-width: 240px;
-  word-break: break-all;
+  min-width: 140px;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .credentialToggleButton {
@@ -725,8 +727,7 @@
 .credentialMobileHeader {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   padding: 0;
   border: 0;
@@ -1308,6 +1309,10 @@
   max-height: 460px;
   border: 1px solid var(--border-color);
   border-radius: $radius-md;
+
+  .table {
+    min-width: 1280px;
+  }
 }
 
 .requestEventsActionButton {
@@ -1441,8 +1446,10 @@
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
     monospace;
   font-size: 11px;
-  max-width: 180px;
-  word-break: break-all;
+  max-width: 240px;
+  min-width: 160px;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .requestEventsResultSuccess {

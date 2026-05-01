@@ -471,12 +471,6 @@ export function CredentialStatsCard({
                         aria-expanded={isExpanded}
                         aria-controls={detailRowId}
                       >
-                        <div className={styles.credentialMobileHeaderContent}>
-                          <div className={styles.credentialMobileNameRow}>
-                            <span className={styles.credentialMobileName}>{row.displayName}</span>
-                            {row.type && <span className={styles.credentialType}>{row.type}</span>}
-                          </div>
-                        </div>
                         <span
                           className={[
                             styles.credentialExpandIcon,
@@ -486,6 +480,12 @@ export function CredentialStatsCard({
                         >
                           ▶
                         </span>
+                        <div className={styles.credentialMobileHeaderContent}>
+                          <div className={styles.credentialMobileNameRow}>
+                            <span className={styles.credentialMobileName}>{row.displayName}</span>
+                            {row.type && <span className={styles.credentialType}>{row.type}</span>}
+                          </div>
+                        </div>
                       </button>
 
                       <div className={styles.credentialMobileSummary}>
