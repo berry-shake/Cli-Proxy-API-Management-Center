@@ -1,4 +1,64 @@
-# CLI Proxy API 管理中心 (CPAMC)
+# 由于官方版本不再支持数据统计，本仓库也不再更新，感谢大家！
+详见：https://github.com/router-for-me/CLIProxyAPI/releases/tag/v6.10.0
+
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+-
+
+-
+
+-
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### CLI Proxy API 管理中心 (CPAMC)
 
 > 一个基于官方仓库二次创作的 Web 管理界面
 
