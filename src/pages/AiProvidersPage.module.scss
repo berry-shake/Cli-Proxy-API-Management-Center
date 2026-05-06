@@ -103,11 +103,7 @@ $openai-toolbar-control-height: 36px;
 .openaiProviderList {
   display: grid;
   gap: $spacing-md;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-
-  @media (min-width: 1400px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 350px), 1fr));
 
   @include mobile {
     grid-template-columns: 1fr;
@@ -124,6 +120,7 @@ $openai-toolbar-control-height: 36px;
   align-items: stretch;
   gap: $spacing-sm;
   min-height: 0;
+  min-width: 0;
 }
 
 .openaiProviderMeta {
@@ -502,6 +499,7 @@ $openai-toolbar-control-height: 36px;
   align-items: baseline;
   gap: 6px;
   margin-bottom: 4px;
+  min-width: 0;
   font-size: 13px;
   line-height: 1.4;
 }
@@ -516,6 +514,9 @@ $openai-toolbar-control-height: 36px;
 .fieldValue {
   color: var(--text-primary);
   font-weight: 600;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   word-break: break-all;
   font-family: 'Monaco', 'Menlo', 'Consolas', 'Ubuntu Mono', monospace;
 }
@@ -526,22 +527,30 @@ $openai-toolbar-control-height: 36px;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .headerBadge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
   background: var(--accent-tertiary, #f3f4f6);
   border: 1px solid var(--border-primary);
   border-radius: 12px;
   padding: 4px 10px;
   font-size: 12px;
   color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   strong {
     font-weight: 600;
     color: var(--text-primary);
+    flex-shrink: 0;
   }
 }
 
@@ -552,6 +561,8 @@ $openai-toolbar-control-height: 36px;
   gap: 6px;
   margin-top: 8px;
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .modelCountLabel {
@@ -571,6 +582,8 @@ $openai-toolbar-control-height: 36px;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
   background: var(--bg-quinary, #f8f9fa);
   color: var(--text-secondary);
   border: 1px solid var(--border-secondary);
@@ -588,12 +601,16 @@ $openai-toolbar-control-height: 36px;
 .modelName {
   font-weight: 600;
   color: var(--text-primary);
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
 
 .modelAlias {
   color: var(--text-tertiary);
   font-style: italic;
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
 
   &::before {
@@ -627,6 +644,8 @@ $openai-toolbar-control-height: 36px;
 // API密钥条目列表（二级卡片）
 .apiKeyEntriesSection {
   margin-top: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .apiKeyEntriesLabel {
@@ -640,6 +659,8 @@ $openai-toolbar-control-height: 36px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .apiKeyEntryCard {
@@ -647,6 +668,8 @@ $openai-toolbar-control-height: 36px;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  max-width: 100%;
   padding: 8px 12px;
   background: var(--bg-secondary, #f9fafb);
   border: 1px solid var(--border-secondary);
@@ -672,12 +695,19 @@ $openai-toolbar-control-height: 36px;
   font-family: 'Monaco', 'Menlo', 'Consolas', 'Ubuntu Mono', monospace;
   font-weight: 600;
   color: var(--text-primary);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   word-break: break-all;
 }
 
 .apiKeyEntryProxy {
   color: var(--text-tertiary);
   font-size: 11px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   &::before {
     content: '| Proxy: ';
