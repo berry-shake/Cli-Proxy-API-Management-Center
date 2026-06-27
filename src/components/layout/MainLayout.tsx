@@ -22,6 +22,7 @@ import {
   IconSidebarOauth,
   IconSidebarPlugins,
   IconSidebarProviders,
+  IconSidebarQuickStart,
   IconSidebarQuota,
   IconSidebarStore,
   IconSidebarSystem,
@@ -41,6 +42,7 @@ import {
   resolvePluginAssetURL,
   type PluginResourceEntry,
 } from '@/features/plugins/pluginResources';
+import { APIKEY_FUN_DISPLAY_NAME, hasApiKeyFunConfig } from '@/features/providers/sponsor';
 import { triggerHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { LANGUAGE_LABEL_KEYS, LANGUAGE_ORDER } from '@/utils/constants';
 import { isSupportedLanguage } from '@/utils/language';
@@ -48,6 +50,7 @@ import type { Theme } from '@/types';
 
 const sidebarIcons: Record<string, ReactNode> = {
   dashboard: <IconSidebarDashboard size={18} />,
+  quickStart: <IconSidebarQuickStart size={18} />,
   aiProviders: <IconSidebarProviders size={18} />,
   authFiles: <IconSidebarAuthFiles size={18} />,
   oauth: <IconSidebarOauth size={18} />,
@@ -87,7 +90,7 @@ interface SidebarNavGroup {
 }
 
 const flattenNavItems = (items: SidebarNavItem[]): SidebarNavLinkItem[] =>
-  items.flatMap((item) => item.kind === 'drawer' ? item.children : [item]);
+  items.flatMap((item) => (item.kind === 'drawer' ? item.children : [item]));
 
 /** 点击菜单外或按下 Escape 时关闭弹出菜单 */
 function useMenuDismiss(
@@ -305,6 +308,7 @@ export function MainLayout() {
 
   const fetchConfig = useConfigStore((state) => state.fetchConfig);
   const clearCache = useConfigStore((state) => state.clearCache);
+  const config = useConfigStore((state) => state.config);
 
   const theme = useThemeStore((state) => state.theme);
   const setTheme = useThemeStore((state) => state.setTheme);
@@ -509,6 +513,15 @@ export function MainLayout() {
       })
     : [];
 
+  const isApiKeyFunConfigured = hasApiKeyFunConfig(config);
+  const quickStartNavItem: SidebarNavLinkItem = {
+    path: '/quick-start',
+    label: isApiKeyFunConfigured ? APIKEY_FUN_DISPLAY_NAME : undefined,
+    labelKey: isApiKeyFunConfigured ? undefined : 'nav.quick_start',
+    metaKey: 'nav_meta.quick_start',
+    icon: sidebarIcons.quickStart,
+  };
+
   const navGroups: SidebarNavGroup[] = [
     {
       id: 'operate',
@@ -520,6 +533,7 @@ export function MainLayout() {
           metaKey: 'nav_meta.dashboard',
           icon: sidebarIcons.dashboard,
         },
+        ...(!isApiKeyFunConfigured ? [quickStartNavItem] : []),
       ],
     },
     {
@@ -544,6 +558,7 @@ export function MainLayout() {
           metaKey: 'nav_meta.oauth',
           icon: sidebarIcons.oauth,
         },
+        ...(isApiKeyFunConfigured ? [quickStartNavItem] : []),
       ],
     },
     {
@@ -935,9 +950,11 @@ export function MainLayout() {
                 className={`nav-group ${group.id === 'plugin-pages' ? 'nav-group-bottom' : ''}`}
                 key={group.id}
               >
-                {showSidebarLabels
-                  ? <div className="nav-group-label">{t(group.labelKey)}</div>
-                  : idx > 0 && <div className="nav-group-divider" aria-hidden="true" />}
+                {showSidebarLabels ? (
+                  <div className="nav-group-label">{t(group.labelKey)}</div>
+                ) : (
+                  idx > 0 && <div className="nav-group-divider" aria-hidden="true" />
+                )}
                 {group.items.map((item) => renderNavItem(item))}
               </div>
             ))}
