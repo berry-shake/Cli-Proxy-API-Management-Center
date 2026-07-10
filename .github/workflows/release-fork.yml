@@ -1,9 +1,9 @@
-name: Build and Release
+name: Build and Release (fork)
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*fork*'
 
 jobs:
   build-and-release:
