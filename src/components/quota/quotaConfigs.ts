@@ -1064,6 +1064,28 @@ const buildClaudeQuotaWindows = (
     });
   }
 
+  // 模型级周限额（如 Fable）只出现在 limits 数组的 weekly_scoped 条目中
+  const limits = Array.isArray(payload.limits) ? payload.limits : [];
+  for (const limit of limits) {
+    if (!limit || limit.kind !== 'weekly_scoped') continue;
+    const modelName = normalizeStringValue(
+      limit.scope?.model?.display_name ?? limit.scope?.model?.id
+    );
+    if (!modelName) continue;
+    const slug = modelName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const id = `seven-day-${slug || 'scoped'}`;
+    if (windows.some((window) => window.id === id)) continue;
+    windows.push({
+      id,
+      label: modelName,
+      usedPercent: normalizeNumberValue(limit.percent),
+      resetLabel: formatQuotaResetTime(limit.resets_at ?? undefined),
+    });
+  }
+
   return windows;
 };
 
