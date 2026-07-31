@@ -95,20 +95,6 @@ export interface ClaudeUsageWindow {
   resets_at: string | null;
 }
 
-export interface ClaudeUsageLimit {
-  kind?: string | null;
-  group?: string | null;
-  percent?: number | null;
-  resets_at?: string | null;
-  is_active?: boolean | null;
-  scope?: {
-    model?: {
-      id?: string | null;
-      display_name?: string | null;
-    } | null;
-  } | null;
-}
-
 export interface ClaudeExtraUsage {
   is_enabled: boolean;
   monthly_limit: number;
@@ -125,13 +111,13 @@ export interface ClaudeUsageLimitScope {
 }
 
 export interface ClaudeUsageLimit {
-  kind?: string;
-  group?: string;
+  kind?: string | null;
+  group?: string | null;
   percent?: number | string | null;
   severity?: string;
   resets_at?: string | null;
   scope?: ClaudeUsageLimitScope | null;
-  is_active?: boolean;
+  is_active?: boolean | null;
 }
 
 export interface ClaudeUsagePayload {
