@@ -26,6 +26,7 @@ import {
 } from '@/utils/authIndex';
 import { PROVIDER_DESCRIPTORS } from '../../descriptors';
 import { readThinkingLevels } from '../../thinkingLevels';
+import { mergeDiscoveredModels } from '../../modelEntries';
 import type {
   ApiKeyEntryInput,
   ModelEntryInput,
@@ -94,7 +95,7 @@ function buildInitialForm(
       proxyUrl: '',
       prefix: '',
       disabled: false,
-      disableCooling: false,
+      disableCooling: undefined,
       priority: undefined,
       weight: undefined,
       models: [emptyModel()],
@@ -129,10 +130,11 @@ function buildInitialForm(
       proxyUrl: '',
       prefix: cfg.prefix ?? '',
       disabled: cfg.disabled === true,
-      disableCooling: cfg.disableCooling === true,
+      disableCooling: cfg.disableCooling,
       priority: cfg.priority,
       models: cfg.models?.length
         ? cfg.models.map((m) => ({
+            sourceIndex: m.sourceIndex,
             name: m.name,
             alias: m.alias ?? '',
             priority: m.priority,
@@ -151,6 +153,7 @@ function buildInitialForm(
         ? cfg.apiKeyEntries.map((entry) => ({
             apiKey: '',
             existingApiKey: entry.apiKey,
+            sourceIndex: entry.sourceIndex,
             proxyUrl: entry.proxyUrl ?? '',
             weight: entry.weight,
             authIndex: entry.authIndex,
@@ -173,11 +176,12 @@ function buildInitialForm(
     proxyUrl: cfg.proxyUrl ?? '',
     prefix: cfg.prefix ?? '',
     disabled,
-    disableCooling: cfg.disableCooling === true,
+    disableCooling: cfg.disableCooling,
     priority: cfg.priority,
     weight: cfg.weight,
     models: cfg.models?.length
       ? cfg.models.map((m) => ({
+          sourceIndex: m.sourceIndex,
           name: m.name,
           alias: m.alias ?? '',
           priority: m.priority,
@@ -301,6 +305,7 @@ export function BaseProviderForm({
     {
       brand,
       baseUrl: form.baseUrl,
+      proxyUrl: form.proxyUrl,
       testModel: form.testModel,
       models: form.models,
       formHeaders: form.headers,
@@ -315,6 +320,7 @@ export function BaseProviderForm({
   const discovery = useModelDiscovery({
     brand,
     baseUrl: form.baseUrl,
+    proxyUrl: form.proxyUrl,
     formHeaders: form.headers,
     apiKeyEntries: form.apiKeyEntries,
     apiKey: form.apiKey,
@@ -370,35 +376,7 @@ export function BaseProviderForm({
 
   const applyDiscoveredModels = (incoming: ModelInfo[]) => {
     if (!incoming.length) return;
-    setForm((prev) => {
-      const seen = new Set<string>();
-      const next: ModelEntryInput[] = [];
-      prev.models.forEach((entry) => {
-        const trimmed = (entry.name ?? '').trim();
-        if (trimmed) {
-          if (seen.has(trimmed)) return;
-          seen.add(trimmed);
-        }
-        next.push(entry);
-      });
-      // If the existing list is just an empty placeholder row, drop it.
-      const placeholderIdx = next.findIndex(
-        (it) => !(it.name ?? '').trim() && !(it.alias ?? '').trim()
-      );
-      if (placeholderIdx !== -1) {
-        next.splice(placeholderIdx, 1);
-      }
-      incoming.forEach((info) => {
-        const trimmed = info.name.trim();
-        if (!trimmed || seen.has(trimmed)) return;
-        seen.add(trimmed);
-        next.push({
-          name: trimmed,
-          alias: (info.alias ?? '').trim(),
-        });
-      });
-      return { ...prev, models: next };
-    });
+    setForm((prev) => ({ ...prev, models: mergeDiscoveredModels(prev.models, incoming) }));
   };
 
   const updateField = <K extends keyof ProviderEntryFormInput>(
