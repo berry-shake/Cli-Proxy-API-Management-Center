@@ -93,20 +93,27 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           proxyUrl
         );
       } else if (brand === 'openaiCompatibility') {
-        const firstEntry = (apiKeyEntries ?? []).find(
-          (e) =>
-            (e.apiKey ?? '').trim() || (e.existingApiKey ?? '').trim() || (e.authIndex ?? '').trim()
-        );
+        const firstEntry =
+          (apiKeyEntries ?? []).find(
+            (e) =>
+              (e.apiKey ?? '').trim() ||
+              (e.existingApiKey ?? '').trim() ||
+              (e.authIndex ?? '').trim()
+          ) ?? apiKeyEntries?.[0];
         const entryKey =
           (firstEntry?.apiKey ?? '').trim() || (firstEntry?.existingApiKey ?? '').trim();
-        const entryAuthIndex = (firstEntry?.authIndex ?? '').trim() || resolvedAuthIndex;
+        const entryAuthIndex = entryKey
+          ? firstEntry?.authIndex
+          : firstEntry?.authIndex || resolvedAuthIndex;
         try {
           next = await modelsApi.fetchModelsViaApiCall(
             baseUrl,
             entryKey,
             baseHeaders,
             entryAuthIndex,
-            firstEntry?.proxyUrl
+            firstEntry?.proxyUrl,
+            // Keyless group indexes route the request but cannot supply a token.
+            Boolean(firstEntry?.authIndex)
           );
         } catch (firstErr) {
           // Some OpenAI-compatible endpoints expose /models without auth, or

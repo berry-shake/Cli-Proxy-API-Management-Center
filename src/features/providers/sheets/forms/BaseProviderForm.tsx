@@ -20,10 +20,6 @@ import {
 import { hasDisableAllModelsRule } from '@/components/providers/utils';
 import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
-import {
-  calculateConfigApiKeyAuthIndex,
-  type ConfigApiKeyProvider,
-} from '@/utils/authIndex';
 import { PROVIDER_DESCRIPTORS } from '../../descriptors';
 import { mergeDiscoveredModels } from '../../modelEntries';
 import type {
@@ -35,6 +31,7 @@ import type {
 } from '../../types';
 import { useConnectivityTest, type ConnectivityErrorMessages } from './useConnectivityTest';
 import { useModelDiscovery } from './useModelDiscovery';
+import { resolveProviderProbeAuth } from './providerProbeAuth';
 import { ModelDiscoveryPanel } from './ModelDiscoveryPanel';
 import { ConnectivityStatusIcon } from './ConnectivityStatusIcon';
 import { ApiKeyEntriesEditor } from './ApiKeyEntriesEditor';
@@ -59,12 +56,6 @@ interface BaseProviderFormProps {
   onSubmit: (input: ProviderEntryFormInput) => Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
 }
-
-const AUTH_INDEX_BRAND_MAP: Partial<Record<ProviderBrand, ConfigApiKeyProvider>> = {
-  gemini: 'gemini',
-  claude: 'claude',
-  codex: 'codex',
-};
 
 const emptyHeader = () => ({ key: '', value: '' });
 const emptyModel = (): ModelEntryInput => ({ name: '', alias: '' });
@@ -163,7 +154,6 @@ function buildInitialForm(
             sourceIndex: entry.sourceIndex,
             proxyUrl: entry.proxyUrl ?? '',
             weight: entry.weight,
-            authIndex: entry.authIndex,
           }))
         : [emptyApiKeyEntry()],
     };
@@ -260,43 +250,16 @@ export function BaseProviderForm({
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  const fallbackApiKey = useMemo(() => {
-    if (mode !== 'edit' || !resource) return '';
-    if (brand === 'openaiCompatibility') return '';
-    return (resource.raw as { apiKey?: string } | undefined)?.apiKey ?? '';
-  }, [brand, mode, resource]);
-
-  const fallbackAuthIndex = useMemo(() => {
-    if (mode !== 'edit' || !resource) return '';
-    return (resource.raw as { authIndex?: string } | undefined)?.authIndex ?? '';
-  }, [mode, resource]);
-
-  // 后端按 auth_index 解析路由,在 baseUrl/apiKey 变化时本地复算 v7 seed
-  // (apiPrefix:baseURL+apiKey),否则新建或修改后的内网 endpoint 测试会
-  // 路由到错误条目。brand 变化由 ProviderSheet 通过 formKey 重建组件。
-  const authIndexProvider = AUTH_INDEX_BRAND_MAP[brand];
-  const effectiveApiKeyForAuthIndex = form.apiKey.trim() || fallbackApiKey;
-  const [computedAuthIndex, setComputedAuthIndex] = useState<string>('');
-  useEffect(() => {
-    if (!authIndexProvider) return;
-    let cancelled = false;
-    calculateConfigApiKeyAuthIndex({
-      provider: authIndexProvider,
-      baseUrl: form.baseUrl,
-      apiKey: effectiveApiKeyForAuthIndex,
-    })
-      .then((value) => {
-        if (!cancelled) setComputedAuthIndex(value ?? '');
-      })
-      .catch(() => {
-        if (!cancelled) setComputedAuthIndex('');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [authIndexProvider, form.baseUrl, effectiveApiKeyForAuthIndex]);
-
-  const effectiveAuthIndex = computedAuthIndex || fallbackAuthIndex;
+  const probeAuth = useMemo(
+    () =>
+      resolveProviderProbeAuth(
+        form,
+        mode === 'edit' && resource
+          ? (resource.raw as ProviderKeyConfig | OpenAIProviderConfig)
+          : undefined
+      ),
+    [form, mode, resource]
+  );
 
   const connectivityMessages = useMemo<ConnectivityErrorMessages>(
     () => ({
@@ -318,10 +281,10 @@ export function BaseProviderForm({
       testModel: form.testModel,
       models: form.models,
       formHeaders: form.headers,
-      apiKeyEntries: form.apiKeyEntries,
+      apiKeyEntries: probeAuth.apiKeyEntries,
       apiKey: form.apiKey,
-      fallbackApiKey,
-      authIndex: effectiveAuthIndex,
+      fallbackApiKey: probeAuth.fallbackApiKey,
+      authIndex: probeAuth.authIndex,
     },
     connectivityMessages
   );
@@ -331,10 +294,10 @@ export function BaseProviderForm({
     baseUrl: form.baseUrl,
     proxyUrl: form.proxyUrl,
     formHeaders: form.headers,
-    apiKeyEntries: form.apiKeyEntries,
+    apiKeyEntries: probeAuth.apiKeyEntries,
     apiKey: form.apiKey,
-    fallbackApiKey,
-    authIndex: effectiveAuthIndex,
+    fallbackApiKey: probeAuth.fallbackApiKey,
+    authIndex: probeAuth.authIndex,
   });
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
 

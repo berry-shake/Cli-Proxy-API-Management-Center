@@ -263,7 +263,23 @@ const getGroups = async (family: ProviderFamily) => {
   return readProviderGroups(raw, family);
 };
 const putGroups = (family: ProviderFamily, groups: Record<string, unknown>[]) =>
-  apiClient.put(`/config/api-keys/${family}`, groups);
+  apiClient.put(
+    `/config/api-keys/${family}`,
+    groups.map((group) => {
+      // Runtime indexes are response-only at group/key boundaries, not inside user maps.
+      const payload = { ...group };
+      delete payload.auth_index;
+      if (Array.isArray(group.keys)) {
+        payload.keys = group.keys.map((key: unknown) => {
+          if (!isRecord(key)) return key;
+          const credential = { ...key };
+          delete credential.auth_index;
+          return credential;
+        });
+      }
+      return payload;
+    })
+  );
 
 /** Locate by persisted snapshot, never by flattened row index. Refuse ambiguous duplicates. */
 export const locateProviderGroup = (
@@ -466,8 +482,6 @@ const updateKey = async (
     config.models,
     family === 'vertex' ? serializeVertexModelAliases : serializeModelAliases
   );
-  // Response metadata belongs to credentials, not arbitrary nested maps such as headers.
-  delete keys[keyIndex]['auth-index'];
   groups[index] = { ...nextGroup, keys };
   await putGroups(family, groups);
 };
@@ -582,7 +596,6 @@ export const providersApi = {
           serializeApiKeyEntry(old),
           serializeApiKeyEntry(entry)
         );
-        delete key['auth-index'];
         return key;
       });
     }

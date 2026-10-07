@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { apiClient } from '../src/services/api/client';
 import { providersApi, type ProviderFamily } from '../src/services/api/providers';
-import { normalizeConfigResponse, normalizeProviderGroups } from '../src/services/api/transformers';
+import {
+  normalizeApiKeyEntry,
+  normalizeConfigResponse,
+  normalizeGeminiKeyConfig,
+  normalizeProviderGroups,
+  normalizeProviderKeyConfig,
+} from '../src/services/api/transformers';
 import type { ProviderKeyConfig, OpenAIProviderConfig } from '../src/types';
 import { useAuthStore } from '../src/stores/useAuthStore';
 
@@ -415,13 +421,17 @@ test('OpenAI rejects repeated sourceIndex without writing', async () => {
 });
 
 for (const inherited of [false, true]) {
-  test(`credential edits preserve auth-index headers (inherited=${inherited})`, async () => {
-    const headers = { 'auth-index': 'request-header', Other: 'before' };
+  test(`credential edits preserve auth_index headers (inherited=${inherited})`, async () => {
+    const headers = {
+      auth_index: 'request-header',
+      'auth-index': 'custom-header',
+      Other: 'before',
+    };
     const key = {
       'api-key': 'fixture',
-      'auth-index': 'response-metadata',
+      auth_index: 'response-metadata',
       headers: inherited ? null : headers,
-      models: [{ name: 'model', alias: 'before', 'auth-index': 'opaque-model-field' }],
+      models: [{ name: 'model', alias: 'before', auth_index: 'opaque-model-field' }],
     };
     const group = { name: 'team', ...(inherited ? { headers } : {}), keys: [key] };
     const b = backend('codex', [group]);
@@ -444,12 +454,12 @@ for (const inherited of [false, true]) {
   });
 }
 
-test('OpenAI group headers retain auth-index while edited credentials drop response metadata', async () => {
+test('OpenAI group headers retain auth_index while edited credentials drop response metadata', async () => {
   const group = {
     name: 'compat',
     'base-url': 'https://example.invalid',
-    headers: { 'auth-index': 'request-header', Other: 'before' },
-    keys: [{ 'api-key': 'fixture', 'auth-index': 'response-metadata', custom: 'keep' }],
+    headers: { auth_index: 'request-header', Other: 'before' },
+    keys: [{ 'api-key': 'fixture', auth_index: 'response-metadata', custom: 'keep' }],
   };
   const b = backend('openai-compatibility', [group]);
   const current = (await providersApi.getOpenAIProviders())[0];
@@ -463,4 +473,89 @@ test('OpenAI group headers retain auth-index while edited credentials drop respo
     headers: { ...group.headers, Other: 'after' },
     keys: [{ 'api-key': 'fixture', custom: 'keep', weight: 2 }],
   });
+});
+
+test('credential normalizers preserve opaque v8 indexes without accepting legacy metadata', () => {
+  for (const normalize of [
+    normalizeApiKeyEntry,
+    normalizeGeminiKeyConfig,
+    normalizeProviderKeyConfig,
+  ]) {
+    expect(normalize({ 'api-key': 'fixture', auth_index: 'opaque/index' })?.authIndex).toBe(
+      'opaque/index'
+    );
+    expect(normalize({ 'api-key': 'fixture', 'auth-index': 'legacy' })?.authIndex).toBeUndefined();
+  }
+});
+
+test('OpenAI normalization keeps independent per-key and keyless group indexes', () => {
+  const groups = [
+    {
+      name: 'keyed',
+      'base-url': 'https://example.invalid',
+      keys: [
+        { 'api-key': 'same-fixture', auth_index: 'opaque/key-a' },
+        { 'api-key': 'same-fixture', auth_index: 'opaque/key-b', 'proxy-url': 'direct' },
+      ],
+    },
+    {
+      name: 'keyless',
+      'base-url': 'https://example.invalid',
+      auth_index: 'opaque/keyless',
+      keys: [],
+    },
+  ];
+  const config = normalizeConfigResponse({ 'api-keys': { 'openai-compatibility': groups } });
+  const [keyed, keyless] = config.openaiCompatibility!;
+  expect(keyed.authIndex).toBeUndefined();
+  expect(
+    keyed.apiKeyEntries.map(({ authIndex, sourceIndex }) => ({ authIndex, sourceIndex }))
+  ).toEqual([
+    { authIndex: 'opaque/key-a', sourceIndex: 0 },
+    { authIndex: 'opaque/key-b', sourceIndex: 1 },
+  ]);
+  expect(keyless.authIndex).toBe('opaque/keyless');
+  expect(keyless.apiKeyEntries).toEqual([]);
+  expect(keyless.source).toMatchObject({ groupIndex: 1, group: groups[1] });
+});
+
+test('OpenAI toggles strip runtime indexes from all written boundaries, not nested user values', async () => {
+  const plugin = { auth_index: 'plugin-setting', nested: { auth_index: 'nested-setting' } };
+  const groups = [
+    {
+      name: 'keyless',
+      'base-url': 'https://example.invalid',
+      auth_index: 'opaque/keyless',
+      headers: { auth_index: 'header-value' },
+      plugin,
+      keys: [],
+    },
+    {
+      name: 'sibling',
+      'base-url': 'https://example.invalid',
+      keys: [{ 'api-key': 'fixture', auth_index: 'opaque/key', plugin, headers: null }],
+    },
+  ];
+  const b = backend('openai-compatibility', groups);
+  const current = (await providersApi.getOpenAIProviders())[0];
+  await providersApi.updateOpenAIProviderDisabled(0, true, current.source);
+  expect(b.writes).toEqual([
+    [
+      {
+        name: 'keyless',
+        'base-url': 'https://example.invalid',
+        headers: { auth_index: 'header-value' },
+        plugin,
+        keys: [],
+        disabled: true,
+      },
+      {
+        name: 'sibling',
+        'base-url': 'https://example.invalid',
+        keys: [{ 'api-key': 'fixture', plugin, headers: null }],
+      },
+    ],
+  ]);
+  expect(current.source?.group.auth_index).toBe('opaque/keyless');
+  expect(current.source?.groups?.[1].keys).toEqual(groups[1].keys);
 });

@@ -81,6 +81,8 @@ Upgrade the backend first and back up `config.yaml`. The backend returns the v8 
 
 Supports **English, 简体中文, 繁體中文, and Русский**, with browser-language detection and a manual language switch. Responsive layouts support desktop, tablet, and mobile use in modern Chrome, Firefox, Safari, and Edge.
 
+Provider discovery and connectivity probes run through the backend. Saved credentials use the v8 response's opaque `auth_index`; changing a key or base URL, creating a credential, or clearing its saved proxy omits the old index and probes with the current draft credentials and proxy. OpenAI-compatible keys keep independent indexes; keyless groups do not inject `$TOKEN$`. Runtime indexes are not written back into provider configuration.
+
 ## Sponsor
 
 [![APIMart — AI image and video generation API](./assets/apimart-en.png)](https://go.apimart.ai/gh-cli-proxy-api-management-center)
@@ -157,7 +159,7 @@ Use a trusted device or dedicated browser profile. Enable remote management only
 - **Logs page missing:** enable “Logging to file” in Basic Settings.
 - **Feature unsupported:** check the backend version and whether the relevant endpoint is enabled. Some capabilities depend on backend support.
 - **Model list unavailable:** querying `/v1/models` requires at least one proxy API key.
-- **OpenAI provider test fails:** this test runs in the browser and depends on the provider's network reachability and CORS policy. Failure does not necessarily mean the backend cannot reach it.
+- **OpenAI provider test fails:** probes run through the backend using the current draft credentials and proxy. Check backend reachability, proxy settings, and the upstream response; browser-to-provider CORS is not required.
 
 </details>
 

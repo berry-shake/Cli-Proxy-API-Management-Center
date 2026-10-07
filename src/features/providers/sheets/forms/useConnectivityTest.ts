@@ -205,15 +205,7 @@ export function useConnectivityTest(
       }
       const entry = apiKeyEntries?.[idx];
       const entryKey = (entry?.apiKey ?? '').trim() || (entry?.existingApiKey ?? '').trim();
-      const resolvedAuthIndex =
-        (entry?.authIndex ?? '').trim() || (authIndex ?? '').trim() || undefined;
-      if (!entryKey && !resolvedAuthIndex) {
-        updateOpenaiStatus(idx, {
-          state: 'error',
-          message: messages.apiKeyRequired,
-        });
-        return false;
-      }
+      const resolvedAuthIndex = entryKey ? entry?.authIndex : entry?.authIndex || authIndex;
       const model = pickModel(testModel, models);
       if (!model) {
         updateOpenaiStatus(idx, {
@@ -230,7 +222,7 @@ export function useConnectivityTest(
       if (!hasHeader(headerObj, 'authorization')) {
         if (entryKey) {
           headerObj.Authorization = `Bearer ${entryKey}`;
-        } else if (resolvedAuthIndex) {
+        } else if (entry?.authIndex) {
           headerObj.Authorization = 'Bearer $TOKEN$';
         }
       }
