@@ -30,9 +30,6 @@ const serializeModelAliases = (models?: ModelAlias[], includeOpenAIFields = fals
           if (model.priority !== undefined) {
             payload.priority = model.priority;
           }
-          if (model.testModel) {
-            payload['test-model'] = model.testModel;
-          }
           if (includeOpenAIFields && model.image) {
             payload.image = true;
           }
@@ -206,7 +203,6 @@ const serializeOpenAIProvider = (provider: OpenAIProviderConfig) => {
   const models = serializeModelAliases(provider.models, true);
   if (models && models.length) payload.models = models;
   if (provider.priority !== undefined) payload.priority = provider.priority;
-  if (provider.testModel) payload['test-model'] = provider.testModel;
   if (provider.disableCooling !== undefined) payload['disable-cooling'] = provider.disableCooling;
   return payload;
 };
@@ -262,17 +258,32 @@ const getGroups = async (family: ProviderFamily) => {
     throw conflict();
   return readProviderGroups(raw, family);
 };
+// Remove the old UI-only field at known config locations, not inside opaque
+// user maps such as headers. Raw snapshots otherwise preserve unknown fields.
+const removeTestModel = (value: Record<string, unknown>) => {
+  const next = { ...value };
+  delete next['test-model'];
+  return next;
+};
+const cleanModelTestFields = (value: Record<string, unknown>) => {
+  if (!Array.isArray(value.models)) return value;
+  return {
+    ...value,
+    models: value.models.map((model) => (isRecord(model) ? removeTestModel(model) : model)),
+  };
+};
 const putGroups = (family: ProviderFamily, groups: Record<string, unknown>[]) =>
   apiClient.put(
     `/config/api-keys/${family}`,
     groups.map((group) => {
       // Runtime indexes are response-only at group/key boundaries, not inside user maps.
-      const payload = { ...group };
+      const payload: Record<string, unknown> = { ...cleanModelTestFields(group) };
       delete payload.auth_index;
+      if (family === 'openai-compatibility') delete payload['test-model'];
       if (Array.isArray(group.keys)) {
         payload.keys = group.keys.map((key: unknown) => {
           if (!isRecord(key)) return key;
-          const credential = { ...key };
+          const credential: Record<string, unknown> = { ...cleanModelTestFields(key) };
           delete credential.auth_index;
           return credential;
         });
