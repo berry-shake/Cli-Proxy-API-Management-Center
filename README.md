@@ -71,10 +71,10 @@ Upgrade the backend first and back up `config.yaml`. The backend returns the v8 
 | Area | What you can do |
 | --- | --- |
 | **Dashboard** | See connection status, server version, build date, and model availability at a glance. |
-| **Configuration** | Edit common settings and client keys visually, or use the YAML editor with search, highlighting, and a save diff preview. |
+| **Configuration** | Edit settings in labelled rows with keyboard-accessible toggles and compact client-key editors, or use the YAML editor with search, highlighting, and a save diff preview. |
 | **AI providers** | Configure Gemini, Codex, Claude, Vertex, and OpenAI-compatible providers; manage keys, headers, proxies, and model mappings. |
-| **Auth files & OAuth** | Upload, download, and organize credentials; connect supported providers with OAuth or device flows; manage model aliases and exclusions. |
-| **Quotas** | Inspect quota and usage information for supported providers, including Claude, Antigravity, Codex, Kimi, and xAI/Grok. |
+| **Auth files & OAuth** | Organize credentials and start OAuth or device flows from the provider gallery; reopen a pending flow in its focused dialog and submit remote callback URLs. |
+| **Quotas** | Inspect supported providers and backend-advertised plugin quotas, including subscription details, numeric/currency summaries, and remaining quota buckets. |
 | **Logs** | Follow logs with auto-refresh, search, hide management traffic, and download request error logs. |
 | **Plugins** | Access plugin management when the connected backend advertises support. |
 | **System** | Check for updates, inspect available models, and clear local login data. |
