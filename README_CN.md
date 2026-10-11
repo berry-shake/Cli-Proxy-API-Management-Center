@@ -87,6 +87,8 @@
 
 **访问与认证**中的**全局 GitHub Token**控件对应 `server.github-token`。非空配置优先于 `GITHUB_TOKEN`；清空后回退到环境变量，没有令牌时使用未认证请求。匹配的插件商店认证规则仍具有更高优先级。
 
+**使用 Antigravity Credits**位于**高级与实验性 → Antigravity**，对应 `oauth.providers.antigravity.antigravity-credits`；可视化编辑器不再展示或提交旧配额回退开关。内置配额卡片优先于插件能力；其他插件配额通过已注册插件解析，使用 `/v8/management/plugins/{id}/quota` 和凭证的后端 `auth_index` 查询。
+
 ## 赞助商
 
 [![APIMart — AI 图片与视频生成 API](./assets/apimart-zh.png)](https://go.apimart.ai/gh-cli-proxy-api-management-center)

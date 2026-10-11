@@ -87,6 +87,8 @@ Connectivity test model selections stay in the form and are not saved as provide
 
 The **Global GitHub Token** control under **Access & Authentication** edits `server.github-token`. A non-empty value takes precedence over `GITHUB_TOKEN`; clearing it restores environment-token fallback, or unauthenticated requests if no token is available. Matching plugin-store authentication rules still take precedence.
 
+**Use Antigravity Credits** is under **Advanced & Experimental → Antigravity** and edits `oauth.providers.antigravity.antigravity-credits`; the legacy quota-fallback switches are no longer exposed or submitted by the visual editor. Built-in quota cards take precedence over plugin capabilities. Other plugin quotas resolve the registered plugin and use `/v8/management/plugins/{id}/quota` with the credential's backend `auth_index`.
+
 ## Sponsor
 
 [![APIMart — AI image and video generation API](./assets/apimart-en.png)](https://go.apimart.ai/gh-cli-proxy-api-management-center)
