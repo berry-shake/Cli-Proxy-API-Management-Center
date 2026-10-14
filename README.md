@@ -73,7 +73,7 @@ Upgrade the backend first and back up `config.yaml`. The backend returns the v8 
 | **Dashboard** | See connection status, server version, build date, and model availability at a glance. |
 | **Configuration** | Edit settings in labelled rows with keyboard-accessible toggles and compact client-key editors, or use the YAML editor with search, highlighting, and a save diff preview. |
 | **AI providers** | Configure Gemini, Codex, Claude, Vertex, and OpenAI-compatible providers; manage keys, headers, proxies, and model mappings. |
-| **Auth files & OAuth** | Organize credentials and start OAuth or device flows from the provider gallery; reopen a pending flow in its focused dialog and submit remote callback URLs. |
+| **Auth files & OAuth** | Organize credentials and start OAuth or device flows from the provider gallery; Kimi China and International share a brand card but keep separate sign-in and registration entries. Reopen a pending flow in its focused dialog and submit remote callback URLs. |
 | **Quotas** | Inspect supported providers and backend-advertised plugin quotas, including subscription details, numeric/currency summaries, and remaining quota buckets. |
 | **Logs** | Follow logs with auto-refresh, search, hide management traffic, and download request error logs. |
 | **Plugins** | Access plugin management when the connected backend advertises support. |
@@ -87,7 +87,9 @@ Connectivity test model selections stay in the form and are not saved as provide
 
 The **Global GitHub Token** control under **Access & Authentication** edits `server.github-token`. A non-empty value takes precedence over `GITHUB_TOKEN`; clearing it restores environment-token fallback, or unauthenticated requests if no token is available. Matching plugin-store authentication rules still take precedence.
 
-**Use Antigravity Credits** is under **Advanced & Experimental → Antigravity** and edits `oauth.providers.antigravity.antigravity-credits`; the legacy quota-fallback switches are no longer exposed or submitted by the visual editor. Built-in quota cards take precedence over plugin capabilities. Other plugin quotas resolve the registered plugin and use `/v8/management/plugins/{id}/quota` with the credential's backend `auth_index`.
+**Use Antigravity Credits** is under **Advanced & Experimental → Antigravity** and edits `oauth.providers.antigravity.antigravity-credits`; the legacy quota-fallback switches are no longer exposed or submitted by the visual editor. Built-in quota cards take precedence over plugin capabilities. Other plugin quotas prefer the credential's backend-selected `quota_plugin_id`, falling back to registered-plugin discovery only when it is absent, and query `/v8/management/plugins/{id}/quota` with the credential's backend `auth_index`.
+
+Claude quota cards display extra usage separately from dollar-denominated balances: extra-usage amounts use minor currency units, while named dollar balances retain their own limits, remaining amounts, and reset times. A failed refresh keeps the last successful snapshot visible with a stale-data warning.
 
 ## Sponsor
 
