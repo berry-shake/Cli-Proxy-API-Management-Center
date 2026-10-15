@@ -91,6 +91,8 @@ The **Global GitHub Token** control under **Access & Authentication** edits `ser
 
 Claude quota cards display extra usage separately from dollar-denominated balances: extra-usage amounts use minor currency units, while named dollar balances retain their own limits, remaining amounts, and reset times. A failed refresh keeps the last successful snapshot visible with a stale-data warning.
 
+Claude reset-grant card reads are delayed and share in-flight requests for the same credential; rate limiting is shown without automatic retries, and a manual quota refresh can read again. xAI explicitly shows when pay-as-you-go is disabled. Meta quota windows use hours for whole-hour durations and minutes otherwise, and omit the plan row when no plan is available. Auth-file quota cards retain a dedicated refresh action.
+
 ## Sponsor
 
 [![APIMart — AI image and video generation API](./assets/apimart-en.png)](https://go.apimart.ai/gh-cli-proxy-api-management-center)
