@@ -3,6 +3,7 @@ import {
   resolveAntigravityBucketLabelKey,
   resolveAntigravityGroupLabelKey,
   resolveAntigravityGroupModels,
+  shouldShowAntigravityQuotaAvailable,
 } from '@/features/quota/providers/antigravity/labels';
 import { buildAntigravityQuotaGroups } from '@/utils/quota/builders';
 
@@ -94,5 +95,34 @@ describe('Antigravity quota label keys', () => {
         group.buckets.map((b) => resolveAntigravityBucketLabelKey(b.label, b.window))
       )
     ).toEqual(['five_hour_limit', 'weekly_limit', 'five_hour_limit', 'weekly_limit']);
+  });
+
+  test('does not mark a full five-hour bucket available while its weekly quota is exhausted', () => {
+    const fiveHour = {
+      label: 'Five Hour Limit Remaining',
+      window: '5h',
+      remainingFraction: 1,
+    };
+    const weekly = {
+      label: 'Weekly Limit Remaining',
+      window: 'weekly',
+      remainingFraction: 0,
+    };
+    expect(shouldShowAntigravityQuotaAvailable(fiveHour, [fiveHour, weekly])).toBe(false);
+    expect(
+      shouldShowAntigravityQuotaAvailable(fiveHour, [
+        fiveHour,
+        { ...weekly, remainingFraction: 0.01 },
+      ])
+    ).toBe(true);
+    expect(shouldShowAntigravityQuotaAvailable(fiveHour, [fiveHour])).toBe(true);
+  });
+
+  test('reserves the available label for full buckets without blocking other window types', () => {
+    const weekly = { label: 'Weekly Limit Remaining', remainingFraction: 0 };
+    const daily = { label: 'Daily Limit Remaining', remainingFraction: 1 };
+    expect(shouldShowAntigravityQuotaAvailable(daily, [weekly, daily])).toBe(true);
+    const partial = { label: 'Five Hour Limit Remaining', remainingFraction: 0.99 };
+    expect(shouldShowAntigravityQuotaAvailable(partial, [partial])).toBe(false);
   });
 });

@@ -91,7 +91,9 @@ The **Global GitHub Token** control under **Access & Authentication** edits `ser
 
 Claude quota cards display extra usage separately from dollar-denominated balances: extra-usage amounts use minor currency units, while named dollar balances retain their own limits, remaining amounts, and reset times. A failed refresh keeps the last successful snapshot visible with a stale-data warning.
 
-Claude reset-grant card reads are delayed and share in-flight requests for the same credential; rate limiting is shown without automatic retries, and a manual quota refresh can read again. xAI explicitly shows when pay-as-you-go is disabled. Meta quota windows use hours for whole-hour durations and minutes otherwise, and omit the plan row when no plan is available. Auth-file quota cards retain a dedicated refresh action.
+Claude reset-grant card reads are delayed and share in-flight requests for the same credential; rate limiting is shown without automatic retries, and a manual quota refresh can read again. xAI explicitly shows when pay-as-you-go is disabled. Meta quota windows use hours for whole-hour durations and minutes otherwise, and omit the plan row when no plan is available. Idle auth-file quota cards use the clickable prompt; once a read starts, a dedicated refresh action remains available and is disabled while loading.
+
+Antigravity quota cards translate bucket names with a “Remaining” suffix and include Gemini Argon in the Gemini group. A full five-hour bucket is not labeled available while the same group's weekly quota is exhausted; other groups remain independent. Quota and subscription requests use the Antigravity Hub user agent.
 
 ## Sponsor
 
