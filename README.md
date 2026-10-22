@@ -83,6 +83,8 @@ Supports **English, 简体中文, 繁體中文, Русский, Tiếng Việt, 
 
 The OAuth gallery includes **Bind SIWC** for existing Codex credentials. It loads eligible credentials from the connected backend and disables authorization when none are available. Binding requires a backend with SIWC support and completion of the browser authorization flow.
 
+Codex auth-file details expose **Use SIWC** (`use_siwc`). Saving the toggle changes only that preference; turning it off preserves the SIWC binding and the outer credential fields.
+
 Provider discovery and connectivity probes run through the backend. Saved credentials use the v8 response's opaque `auth_index`; changing a key or base URL, creating a credential, or clearing its saved proxy omits the old index and probes with the current draft credentials and proxy. OpenAI-compatible keys keep independent indexes; keyless groups do not inject `$TOKEN$`. Runtime indexes are not written back into provider configuration.
 
 Connectivity test model selections stay in the form and are not saved as provider configuration. Provider writes remove obsolete `test-model` fields at OpenAI-compatible group and provider-model boundaries, and remove `auth_index` only at group/credential boundaries. Custom request headers remain untouched.
