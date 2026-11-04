@@ -99,17 +99,9 @@ Claude reset-grant card reads are delayed and share in-flight requests for the s
 
 Antigravity quota cards translate bucket names with a “Remaining” suffix and include Gemini Argon in the Gemini group. A full five-hour bucket is not labeled available while the same group's weekly quota is exhausted; other groups remain independent. Quota and subscription requests use the Antigravity Hub user agent.
 
-## Sponsor
-
-[![APIMart — AI image and video generation API](./assets/apimart-en.png)](https://go.apimart.ai/gh-cli-proxy-api-management-center)
-
-Thanks to **APIMart** for sponsoring this project!
-
-APIMart is a low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee — [sign up here](https://go.apimart.ai/gh-cli-proxy-api-management-center) to get started.
-
 ## Deployment
 
-To build your own single-file UI, use **Bun 1.3.14**:
+To build your own single-file UI, use **Bun 1.4.3**:
 
 ```bash
 bun install --frozen-lockfile
