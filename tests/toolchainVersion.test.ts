@@ -11,7 +11,11 @@ describe('Bun toolchain version', () => {
     expect(bunVersion).toBeDefined();
   });
 
-  test.each(['.github/workflows/ci.yml', '.github/workflows/release.yml'])(
+  test.each([
+    '.github/workflows/ci.yml',
+    '.github/workflows/release.yml',
+    '.github/workflows/release-fork.yml',
+  ])(
     '%s uses the pinned Bun release',
     (path) => {
       expect(readProjectFile(path)).toContain(`bun-version: '${bunVersion}'`);
