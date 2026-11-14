@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'node:fs';
 import { apiCallApi, type ApiCallRequest } from '../src/services/api/apiCall';
 import {
   useConnectivityTest,
