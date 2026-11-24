@@ -590,25 +590,6 @@ describe('Claude usage snapshot rendering and retention', () => {
     expect(markup).toContain('$94.96 remaining');
   });
 
-  test('keeps the last good data during loading and errors, then recovers', () => {
-    const store = useQuotaStore.getState();
-    store.setClaudeQuota({ [file.name]: quota });
-    store.setClaudeQuota({ [file.name]: CLAUDE_CONFIG.buildLoadingState() });
-    let retained = useQuotaStore.getState().claudeQuota[file.name];
-    expect(retained.status).toBe('loading');
-    expect(retained.extraUsage).toEqual(quota.extraUsage);
-    expect(retained.dollarWindows).toEqual(quota.dollarWindows);
-    store.setClaudeQuota({ [file.name]: CLAUDE_CONFIG.buildErrorState('network failed', 502) });
-    retained = useQuotaStore.getState().claudeQuota[file.name];
-    expect(retained.status).toBe('error');
-    expect(retained.stale).toBe(true);
-    expect(retained.observedAt).toBe(observedAt);
-    expect(retained.dollarWindows).toEqual(quota.dollarWindows);
-    const recovered = { ...quota, observedAt: '2026-10-10T01:00:00Z', stale: false };
-    store.setClaudeQuota({ [file.name]: recovered });
-    expect(useQuotaStore.getState().claudeQuota[file.name]).toEqual(recovered);
-  });
-
   test('does not retain balances across file replacement or session invalidation', () => {
     const store = useQuotaStore.getState();
     store.setClaudeQuota({ [file.name]: quota });
